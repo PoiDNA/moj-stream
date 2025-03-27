@@ -24,13 +24,13 @@
 <body>
   <video id="videoPlayer" muted playsinline webkit-playsinline loop></video>
   <script>
-    // Pobierz parametr "stream" z URL – domyślnie "R" jeśli nie podano
+    // Pobierz parametr "stream" z URL – domyślnie "R", jeśli nie podano
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'R';
 
-    // Linki do streamów
-    const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/r-manifest/video.m3u8";
-    const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/q-manifest/video.m3u8";
+    // Aktualne linki do streamów
+    const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
+    const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
     const chosenUrl = (streamType === "R") ? STREAM_R_URL : STREAM_Q_URL;
 
     const videoEl = document.getElementById("videoPlayer");

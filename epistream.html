@@ -37,7 +37,7 @@
       opacity: 1;
       transition: opacity 0.5s ease;
     }
-    /* Jeden duży, pulsujący przycisk – działa jako przycisk audio */
+    /* Pulsujące koło – przycisk audio */
     #pulseCircle {
       position: absolute;
       top: 50%;
@@ -56,7 +56,7 @@
       50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
-    /* Pseudo-element dodający pulsującą poświatę */
+    /* Efekt pulsowania – pseudo-element */
     #pulseCircle.glow-r::after,
     #pulseCircle.glow-q::after {
       content: "";
@@ -69,20 +69,18 @@
       border-radius: 50%;
       animation: pulseGlow 2s infinite;
     }
-    /* Poświata dla stream R – biała */
     #pulseCircle.glow-r::after {
-      box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 15px 5px rgba(255,255,255,0.8);
     }
-    /* Poświata dla stream Q – jasno niebieska */
     #pulseCircle.glow-q::after {
-      box-shadow: 0 0 15px 5px rgba(173, 216, 230, 0.8);
+      box-shadow: 0 0 15px 5px rgba(173,216,230,0.8);
     }
     @keyframes pulseGlow {
       0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
       50%  { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
-    /* Kontener dla przycisków – wyśrodkowany na dole */
+    /* Kontener przycisków – wyśrodkowany na dole */
     #iconButtons {
       position: absolute;
       bottom: 10px;
@@ -95,7 +93,7 @@
       justify-content: center;
       align-items: center;
     }
-    /* Styl przycisków – domyślnie czarne tło */
+    /* Przyciski – domyślnie czarne tło */
     #iconButtons button {
       background: #000;
       border: none;
@@ -105,13 +103,15 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      transition: background 0.3s, color 0.3s;
     }
-    /* Ikony – domyślnie szary kolor */
+    /* Ikony – domyślnie w kolorze jasnoszarym */
     #iconButtons button svg {
       display: block;
       width: 24px;
       height: 24px;
-      fill: #808080;
+      fill: #d3d3d3;
+      transition: fill 0.3s;
     }
     /* Efekt hover – tło jasnoszare, ikony czarne */
     #iconButtons button:hover {
@@ -130,15 +130,15 @@
     </div>
     <div id="iconButtons">
       <button id="stopBtn" title="Zamknij">
-        <!-- Ikona Zamknij (przykładowa) -->
+        <!-- Ikona Zamknij – kwadrat z zaokrąglonymi rogami -->
         <svg viewBox="0 0 24 24">
-          <rect x="6" y="6" width="12" height="12" fill="currentColor"/>
+          <rect x="6" y="6" width="12" height="12" rx="2" ry="2" fill="currentColor"/>
         </svg>
       </button>
       <button id="fullscreenBtn" title="Fullscreen">
-        <!-- Ikona Fullscreen (przykładowa) -->
+        <!-- Ikona Fullscreen – cztery strzałki -->
         <svg viewBox="0 0 24 24">
-          <path d="M4 4h6V2H2v8h2V4zm16 0v6h2V2h-8v2h6zm0 16h-6v2h8v-8h-2v6zm-16 0v-6H2v8h8v-2H4z" fill="currentColor"/>
+          <path fill="currentColor" d="M4 4h6V2H2v8h2V4zm16 0v6h2V2h-8v2h6zm0 16h-6v2h8v-8h-2v6zm-16 0v-6H2v8h8v-2H4z"/>
         </svg>
       </button>
     </div>
@@ -148,24 +148,24 @@
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
-    // Definicje linków do streamów
+    // Linki do streamów
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
     
-    // Wybór URL dla streamu R lub Q – przy "none" pozostajemy w stanie placeholder
+    // Wybór URL na podstawie parametru stream
     const chosenUrl = (streamType === "R") ? STREAM_R_URL : (streamType === "Q" ? STREAM_Q_URL : null);
     const videoEl = document.getElementById("videoPlayer");
     const pulseCircle = document.getElementById("pulseCircle");
     let timerID = null;
 
-    // Dodajemy odpowiednią klasę glow w zależności od wybranego streamu
+    // Dodanie odpowiedniej klasy glow dla streamów
     if (streamType === "R") {
       pulseCircle.classList.add("glow-r");
     } else if (streamType === "Q") {
       pulseCircle.classList.add("glow-q");
     }
 
-    // Inicjalizacja wideo, jeżeli wybrano stream R lub Q
+    // Inicjalizacja wideo, gdy wybrano stream R lub Q
     if (chosenUrl) {
       if (Hls.isSupported()){
         const hls = new Hls();
@@ -191,9 +191,9 @@
       window.location.href = window.location.pathname + "?stream=none";
     }
 
-    // Obsługa kliknięcia pulsującego koła – odtwarza stream, włącza audio oraz ukrywa overlay
+    // Obsługa kliknięcia pulsującego koła – włącza audio, ukrywa overlay i uruchamia timer
     pulseCircle.addEventListener("click", function(){
-      videoEl.muted = false; // włącz audio
+      videoEl.muted = false;
       const overlay = document.getElementById("overlay");
       overlay.style.opacity = "0";
       setTimeout(() => { overlay.style.display = "none"; }, 500);
@@ -204,7 +204,7 @@
       }, 120000);
     });
 
-    // Obsługa przycisku Fullscreen – przełącza tryb pełnoekranowy dla kontenera wideo
+    // Obsługa przycisku Fullscreen – przełącza tryb pełnoekranowy
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     fullscreenBtn.addEventListener("click", function(){
       const container = document.getElementById("videoContainer");
@@ -215,7 +215,7 @@
       }
     });
 
-    // Obsługa przycisku Zamknij – natychmiast resetuje stream (powrót do placeholder)
+    // Obsługa przycisku Zamknij – resetuje stream
     const stopBtn = document.getElementById("stopBtn");
     stopBtn.addEventListener("click", function(){
       if (timerID) clearTimeout(timerID);

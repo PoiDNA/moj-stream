@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EpiStream Player</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
@@ -37,7 +37,7 @@
       opacity: 1;
       transition: opacity 0.5s ease;
     }
-    /* Jedno duże, pulsujące koło – działa jako przycisk */
+    /* Jeden duży, pulsujący przycisk – działa jako przycisk unmute */
     #pulseCircle {
       position: absolute;
       top: 50%;
@@ -56,20 +56,6 @@
       50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
-    /* Przyciski Fullscreen i Stop */
-    #fullscreenBtn, #stopBtn {
-      position: absolute;
-      top: 10px;
-      z-index: 20;
-      padding: 8px 12px;
-      background: rgba(255,255,255,0.8);
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    #fullscreenBtn { right: 10px; }
-    #stopBtn { left: 10px; }
   </style>
 </head>
 <body>
@@ -78,11 +64,9 @@
     <div id="overlay">
       <div id="pulseCircle"></div>
     </div>
-    <button id="fullscreenBtn">Fullscreen</button>
-    <button id="stopBtn">Stop</button>
   </div>
   <script>
-    // Pobierz parametr "stream" z URL – domyślnie ustawiamy "none"
+    // Pobierz parametr "stream" z URL – domyślnie "none"
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
@@ -90,6 +74,54 @@
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
     
-    // Jeśli streamType jest "R" lub "Q", wybieramy link; przy "none" nie inicjujemy streamu
+    // Jeśli streamType jest "R" lub "Q", wybieramy odpowiedni link; przy "none" pozostajemy w stanie placeholder
     const chosenUrl = (streamType === "R") ? STREAM_R_URL : (streamType === "Q" ? STREAM_Q_URL : null);
-    const videoEl = document.getElementById("videoPlayer
+    const videoEl = document.getElementById("videoPlayer");
+    let timerID = null;
+
+    if (chosenUrl) {
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(chosenUrl);
+        hls.attachMedia(videoEl);
+        hls.on(Hls.Events.MANIFEST_PARSED, function () {
+          videoEl.play().catch(err => console.error("Błąd odtwarzania:", err));
+        });
+      } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
+        videoEl.src = chosenUrl;
+        videoEl.load();
+        videoEl.addEventListener("loadedmetadata", function () {
+          videoEl.play().catch(err => console.error("Błąd odtwarzania na Safari:", err));
+        });
+      } else {
+        console.error("Twoja przeglądarka nie obsługuje HLS.");
+      }
+    }
+
+    // Funkcja resetująca stream – powrót do stanu placeholder (stream=none)
+    function resetStream() {
+      videoEl.pause();
+      window.location.href = window.location.pathname + "?stream=none";
+    }
+
+    // Obsługa kliknięcia w pulseCircle – to przycisk audio
+    const overlay = document.getElementById("overlay");
+    const pulseCircle = document.getElementById("pulseCircle");
+    pulseCircle.addEventListener("click", function () {
+      // Unmute – włączenie audio
+      videoEl.muted = false;
+      // Fade-out overlay
+      overlay.style.opacity = "0";
+      setTimeout(() => {
+        overlay.style.display = "none";
+      }, 500);
+      // Uruchom timer 2-minutowy (120000 ms)
+      if (timerID) clearTimeout(timerID);
+      timerID = setTimeout(() => {
+        console.log("2 minuty minęły – reset streamu");
+        resetStream();
+      }, 120000);
+    });
+  </script>
+</body>
+</html>

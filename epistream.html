@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>EpiStream Player</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
@@ -37,7 +37,7 @@
       opacity: 1;
       transition: opacity 0.5s ease;
     }
-    /* Jedno duże, pulsujące koło – działa jako przycisk */
+    /* Jeden duży, pulsujący przycisk – działa jako przycisk audio */
     #pulseCircle {
       position: absolute;
       top: 50%;
@@ -50,10 +50,37 @@
       animation: pulse 3s infinite;
       z-index: 12;
       cursor: pointer;
+      position: relative;
     }
     @keyframes pulse {
       0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
       50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+    /* Pseudo-element, który będzie dodawał pulsującą poświatę wewnątrz koła */
+    #pulseCircle.glow-r::after,
+    #pulseCircle.glow-q::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80%;
+      height: 80%;
+      border-radius: 50%;
+      animation: pulseGlow 2s infinite;
+    }
+    /* Poświata dla stream R – biała */
+    #pulseCircle.glow-r::after {
+      box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.8);
+    }
+    /* Poświata dla stream Q – jasno niebieska */
+    #pulseCircle.glow-q::after {
+      box-shadow: 0 0 15px 5px rgba(173, 216, 230, 0.8);
+    }
+    @keyframes pulseGlow {
+      0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      50%  { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
     /* Przyciski Fullscreen i Stop */
@@ -82,7 +109,7 @@
     <button id="stopBtn">Stop</button>
   </div>
   <script>
-    // Pobierz parametr "stream" z URL – domyślnie ustawiamy "none"
+    // Pobierz parametr "stream" z URL – domyślnie "none"
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
@@ -90,11 +117,20 @@
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
     
-    // Jeśli streamType jest "R" lub "Q", wybieramy link; przy "none" nie inicjujemy streamu
+    // Jeśli streamType jest "R" lub "Q", wybieramy odpowiedni link; przy "none" pozostajemy w stanie placeholder
     const chosenUrl = (streamType === "R") ? STREAM_R_URL : (streamType === "Q" ? STREAM_Q_URL : null);
     const videoEl = document.getElementById("videoPlayer");
+    const pulseCircle = document.getElementById("pulseCircle");
     let timerID = null;
 
+    // Dodajemy klasę glow do pulseCircle w zależności od wybranego streamu
+    if (streamType === "R") {
+      pulseCircle.classList.add("glow-r");
+    } else if (streamType === "Q") {
+      pulseCircle.classList.add("glow-q");
+    }
+
+    // Inicjalizacja wideo, jeżeli wybrano stream R lub Q
     if (chosenUrl) {
       if (Hls.isSupported()){
         const hls = new Hls();
@@ -120,16 +156,14 @@
       window.location.href = window.location.pathname + "?stream=none";
     }
 
-    // Obsługa kliknięcia w pulseCircle – po kliknięciu:
-    //   - wideo odmutowuje się,
-    //   - overlay znika (fade-out),
-    //   - uruchamia się timer 2-minutowy, po którym stream zostaje zresetowany.
-    const overlay = document.getElementById("overlay");
-    const pulseCircle = document.getElementById("pulseCircle");
+    // Obsługa kliknięcia w pulseCircle – pulsujące koło (audio)
     pulseCircle.addEventListener("click", function(){
-      videoEl.muted = false;
+      videoEl.muted = false; // odmutuj audio
+      // Fade-out overlay
+      const overlay = document.getElementById("overlay");
       overlay.style.opacity = "0";
       setTimeout(() => { overlay.style.display = "none"; }, 500);
+      // Uruchom timer 2-minutowy (120000 ms)
       if (timerID) clearTimeout(timerID);
       timerID = setTimeout(() => {
         console.log("2 minuty minęły – reset streamu");

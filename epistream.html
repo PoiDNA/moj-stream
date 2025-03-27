@@ -50,14 +50,13 @@
       animation: pulse 3s infinite;
       z-index: 12;
       cursor: pointer;
-      position: relative;
     }
     @keyframes pulse {
       0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
       50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
-    /* Pseudo-element, który będzie dodawał pulsującą poświatę wewnątrz koła */
+    /* Pseudo-element dodający pulsującą poświatę */
     #pulseCircle.glow-r::after,
     #pulseCircle.glow-q::after {
       content: "";
@@ -83,20 +82,29 @@
       50%  { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
-    /* Przyciski Fullscreen i Stop */
-    #fullscreenBtn, #stopBtn {
+    /* Kontener dla ikon przycisków w dolnym prawym rogu */
+    #iconButtons {
       position: absolute;
-      top: 10px;
+      bottom: 10px;
+      right: 10px;
       z-index: 20;
-      padding: 8px 12px;
+      display: flex;
+      gap: 10px;
+    }
+    /* Styl przycisków ikon */
+    #iconButtons button {
       background: rgba(255,255,255,0.8);
       border: none;
       border-radius: 4px;
+      padding: 8px;
       cursor: pointer;
-      font-size: 14px;
     }
-    #fullscreenBtn { right: 10px; }
-    #stopBtn { left: 10px; }
+    /* Opcjonalne ustawienia SVG w przyciskach */
+    #iconButtons button svg {
+      display: block;
+      width: 24px;
+      height: 24px;
+    }
   </style>
 </head>
 <body>
@@ -105,8 +113,20 @@
     <div id="overlay">
       <div id="pulseCircle"></div>
     </div>
-    <button id="fullscreenBtn">Fullscreen</button>
-    <button id="stopBtn">Stop</button>
+    <div id="iconButtons">
+      <button id="fullscreenBtn" title="Fullscreen">
+        <!-- Ikona Fullscreen (przykładowa) -->
+        <svg viewBox="0 0 24 24">
+          <path d="M4 4h6V2H2v8h2V4zm16 0v6h2V2h-8v2h6zm0 16h-6v2h8v-8h-2v6zm-16 0v-6H2v8h8v-2H4z" fill="#000"/>
+        </svg>
+      </button>
+      <button id="stopBtn" title="Stop">
+        <!-- Ikona Stop (przykładowa) -->
+        <svg viewBox="0 0 24 24">
+          <rect x="6" y="6" width="12" height="12" fill="#000"/>
+        </svg>
+      </button>
+    </div>
   </div>
   <script>
     // Pobierz parametr "stream" z URL – domyślnie "none"
@@ -117,13 +137,13 @@
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
     
-    // Jeśli streamType jest "R" lub "Q", wybieramy odpowiedni link; przy "none" pozostajemy w stanie placeholder
+    // Wybór URL dla streamu R lub Q – przy "none" pozostajemy w stanie placeholder
     const chosenUrl = (streamType === "R") ? STREAM_R_URL : (streamType === "Q" ? STREAM_Q_URL : null);
     const videoEl = document.getElementById("videoPlayer");
     const pulseCircle = document.getElementById("pulseCircle");
     let timerID = null;
 
-    // Dodajemy klasę glow do pulseCircle w zależności od wybranego streamu
+    // Dodajemy odpowiednią klasę glow w zależności od wybranego streamu
     if (streamType === "R") {
       pulseCircle.classList.add("glow-r");
     } else if (streamType === "Q") {
@@ -156,19 +176,9 @@
       window.location.href = window.location.pathname + "?stream=none";
     }
 
-    // Obsługa kliknięcia w pulseCircle – pulsujące koło (audio)
+    // Kliknięcie pulsującego koła – uruchamia akcję streamu R (symulacja przycisku R)
     pulseCircle.addEventListener("click", function(){
-      videoEl.muted = false; // odmutuj audio
-      // Fade-out overlay
-      const overlay = document.getElementById("overlay");
-      overlay.style.opacity = "0";
-      setTimeout(() => { overlay.style.display = "none"; }, 500);
-      // Uruchom timer 2-minutowy (120000 ms)
-      if (timerID) clearTimeout(timerID);
-      timerID = setTimeout(() => {
-        console.log("2 minuty minęły – reset streamu");
-        resetStream();
-      }, 120000);
+      window.location.href = window.location.pathname + "?stream=R";
     });
 
     // Obsługa przycisku Fullscreen – przełącza tryb pełnoekranowy dla kontenera wideo

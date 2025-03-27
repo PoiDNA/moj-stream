@@ -12,6 +12,12 @@
       width: 100%;
       height: 100%;
       background: #000;
+      overflow: hidden;
+    }
+    #videoContainer {
+      position: relative;
+      width: 100%;
+      height: 100%;
     }
     video {
       width: 100%;
@@ -19,10 +25,52 @@
       object-fit: contain;
       display: block;
     }
+    /* Overlay – całkowicie przykrywający wideo */
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7); /* ciemny, przezroczysty background */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      cursor: pointer;
+      transition: opacity 0.5s ease;
+    }
+    /* Pulsujące koło w overlay */
+    #overlayCircle {
+      width: 80px;
+      height: 80px;
+      border: 4px solid rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.2);
+        opacity: 0.7;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
   </style>
 </head>
 <body>
-  <video id="videoPlayer" muted playsinline webkit-playsinline loop></video>
+  <div id="videoContainer">
+    <video id="videoPlayer" muted playsinline webkit-playsinline loop></video>
+    <div id="overlay">
+      <div id="overlayCircle"></div>
+    </div>
+  </div>
   <script>
     // Pobierz parametr "stream" z URL – domyślnie "R", jeśli nie podano
     const urlParams = new URLSearchParams(window.location.search);
@@ -34,11 +82,11 @@
     const chosenUrl = (streamType === "R") ? STREAM_R_URL : STREAM_Q_URL;
 
     const videoEl = document.getElementById("videoPlayer");
-    // Jeśli występują problemy z CORS, można spróbować ustawić crossOrigin, ale na Safari natywna obsługa HLS może lepiej działać bez niego.
+    // W zależności od konfiguracji możesz spróbować ustawić crossOrigin, ale natywna obsługa w Safari zwykle działa lepiej bez tego:
     // videoEl.crossOrigin = "anonymous";
 
+    // Inicjalizacja odtwarzania
     if (Hls.isSupported()){
-      // Dla przeglądarek innych niż Safari (Chrome, Firefox, Edge) korzystamy z Hls.js
       const hls = new Hls();
       hls.loadSource(chosenUrl);
       hls.attachMedia(videoEl);
@@ -46,7 +94,6 @@
         videoEl.play().catch(err => console.error("Błąd odtwarzania:", err));
       });
     } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")){
-      // Safari obsługuje HLS natywnie – ustawiamy źródło i wywołujemy load()
       videoEl.src = chosenUrl;
       videoEl.load();
       videoEl.addEventListener("loadedmetadata", function() {
@@ -55,6 +102,18 @@
     } else {
       console.error("Twoja przeglądarka nie obsługuje HLS.");
     }
+
+    // Obsługa overlay: kliknięcie na pulsujące koło
+    const overlay = document.getElementById("overlay");
+    overlay.addEventListener("click", function(){
+      // Po kliknięciu w overlay unmute wideo i rozpocznij fade-out overlay
+      videoEl.muted = false;
+      overlay.style.opacity = "0";
+      // Po zakończeniu animacji (0.5s) ukryj overlay
+      setTimeout(() => {
+        overlay.style.display = "none";
+      }, 500);
+    });
   </script>
 </body>
 </html>

@@ -34,9 +34,11 @@
     const chosenUrl = (streamType === "R") ? STREAM_R_URL : STREAM_Q_URL;
 
     const videoEl = document.getElementById("videoPlayer");
-    videoEl.crossOrigin = "anonymous";
+    // Jeśli występują problemy z CORS, można spróbować ustawić crossOrigin, ale na Safari natywna obsługa HLS może lepiej działać bez niego.
+    // videoEl.crossOrigin = "anonymous";
 
     if (Hls.isSupported()){
+      // Dla przeglądarek innych niż Safari (Chrome, Firefox, Edge) korzystamy z Hls.js
       const hls = new Hls();
       hls.loadSource(chosenUrl);
       hls.attachMedia(videoEl);
@@ -44,8 +46,12 @@
         videoEl.play().catch(err => console.error("Błąd odtwarzania:", err));
       });
     } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")){
+      // Safari obsługuje HLS natywnie – ustawiamy źródło i wywołujemy load()
       videoEl.src = chosenUrl;
-      videoEl.play().catch(err => console.error("Błąd odtwarzania (Safari):", err));
+      videoEl.load();
+      videoEl.addEventListener("loadedmetadata", function() {
+        videoEl.play().catch(err => console.error("Błąd odtwarzania na Safari:", err));
+      });
     } else {
       console.error("Twoja przeglądarka nie obsługuje HLS.");
     }

@@ -37,7 +37,7 @@
       opacity: 1;
       transition: opacity 0.5s ease;
     }
-    /* Dwa pulsujące koła – wyśrodkowane */
+    /* Pulsujące koła – oba wyśrodkowane */
     #autoCircle, #clickableCircle {
       position: absolute;
       top: 50%;
@@ -45,11 +45,11 @@
       transform: translate(-50%, -50%);
       border-radius: 50%;
     }
-    /* AutoCircle – większe, efekt wizualny, nie przechwytuje kliknięć */
+    /* AutoCircle – większe, efekt wizualny; nie przechwytuje kliknięć */
     #autoCircle {
       width: 120px;
       height: 120px;
-      border: 4px solid rgba(255, 255, 255, 0.6);
+      border: 4px solid rgba(255,255,255,0.6);
       animation: pulse 3s infinite;
       z-index: 11;
       pointer-events: none;
@@ -58,7 +58,7 @@
     #clickableCircle {
       width: 80px;
       height: 80px;
-      border: 4px solid rgba(255, 255, 255, 0.9);
+      border: 4px solid rgba(255,255,255,0.9);
       animation: pulse 2s infinite;
       z-index: 12;
       cursor: pointer;
@@ -68,10 +68,8 @@
       50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
-    /* Przycisk Fullscreen */
-    #fullscreenBtn, 
-    /* Przycisk Stop */
-    #stopBtn {
+    /* Przycisk Fullscreen i Stop – widoczne w górnych rogach */
+    #fullscreenBtn, #stopBtn {
       position: absolute;
       top: 10px;
       z-index: 20;
@@ -97,7 +95,7 @@
     <button id="stopBtn">Stop</button>
   </div>
   <script>
-    // Pobierz parametr "stream" z URL – domyślnie "none"
+    // Pobierz parametr "stream" z URL – domyślnie ustawiamy "none"
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
@@ -105,10 +103,10 @@
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
     
-    // Jeśli streamType jest "R" lub "Q", wybieramy link, w przeciwnym razie (none) nie inicjujemy streamu
+    // Jeśli streamType jest "R" lub "Q", wybieramy link; przy "none" nie ładujemy streamu
     const chosenUrl = (streamType === "R") ? STREAM_R_URL : (streamType === "Q" ? STREAM_Q_URL : null);
     const videoEl = document.getElementById("videoPlayer");
-    let timerID = null; // zmienna do przechowania timera
+    let timerID = null;
 
     if (chosenUrl) {
       if (Hls.isSupported()){
@@ -116,60 +114,45 @@
         hls.loadSource(chosenUrl);
         hls.attachMedia(videoEl);
         hls.on(Hls.Events.MANIFEST_PARSED, function(){
-          videoEl.play().catch(err => console.error("Błąd odtwarzania:", err));
+          videoEl.play().catch(err => console.error("Error playing video:", err));
         });
       } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")){
         videoEl.src = chosenUrl;
         videoEl.load();
-        videoEl.addEventListener("loadedmetadata", function() {
-          videoEl.play().catch(err => console.error("Błąd odtwarzania na Safari:", err));
+        videoEl.addEventListener("loadedmetadata", function(){
+          videoEl.play().catch(err => console.error("Error playing video on Safari:", err));
         });
       } else {
-        console.error("Twoja przeglądarka nie obsługuje HLS.");
+        console.error("Your browser does not support HLS.");
       }
     }
 
-    // Funkcja resetująca stream – powrót do stanu placeholder
+    // Funkcja resetująca stream – powrót do stanu placeholder (stream=none)
     function resetStream() {
-      // Zatrzymaj wideo
       videoEl.pause();
-      // Odśwież stronę z parametrem "none"
       window.location.href = window.location.pathname + "?stream=none";
     }
 
-    // Obsługa kliknięcia w clickableCircle: unmute, fade-out overlay, uruchom timer 2 minuty
+    // Obsługa kliknięcia w clickableCircle:
+    // - Unmute wideo (włączenie dźwięku)
+    // - Fade-out overlay
+    // - Uruchomienie timera 2-minutowego (odliczanie od momentu kliknięcia)
     const overlay = document.getElementById("overlay");
     const clickableCircle = document.getElementById("clickableCircle");
     clickableCircle.addEventListener("click", function(){
-      videoEl.muted = false; // włącz audio
-      overlay.style.opacity = "0"; // efekt fade-out
-      // Po 0.5s ukrywamy overlay
+      videoEl.muted = false;
+      overlay.style.opacity = "0";
       setTimeout(() => { overlay.style.display = "none"; }, 500);
-      // Uruchamiamy timer 2-minutowy (120000 ms)
       if (timerID) clearTimeout(timerID);
       timerID = setTimeout(() => {
-        console.log("2 minuty minęły – reset streamu");
+        console.log("2 minutes elapsed – resetting stream");
         resetStream();
       }, 120000);
     });
 
-    // Przycisk Fullscreen – przełącza tryb pełnoekranowy dla kontenera wideo
+    // Obsługa przycisku Fullscreen – przełącza tryb pełnoekranowy dla kontenera wideo
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     fullscreenBtn.addEventListener("click", function(){
       const container = document.getElementById("videoContainer");
       if (!document.fullscreenElement) {
-        container.requestFullscreen().catch(err => console.error("Błąd Fullscreen:", err));
-      } else {
-        document.exitFullscreen().catch(err => console.error("Błąd wyjścia z Fullscreen:", err));
-      }
-    });
-
-    // Przycisk Stop – natychmiast resetuje stream (powrót do stanu placeholder)
-    const stopBtn = document.getElementById("stopBtn");
-    stopBtn.addEventListener("click", function(){
-      if (timerID) clearTimeout(timerID);
-      resetStream();
-    });
-  </script>
-</body>
-</html>
+        container.requestFullscreen().catch(err

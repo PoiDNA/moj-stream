@@ -1,303 +1,54 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8" />
-  <title>EpiStream External Player</title>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- hls.js z CDN -->
+  <title>EpiStream Player</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-
   <style>
-    /* Podstawowe style, analogiczne do poprzednich przykładów */
     html, body {
-      margin: 0; padding: 0;
-      width: 100%; height: 100%;
-      background: #000;
-      font-family: sans-serif;
-      overflow: hidden;
-      display: flex; 
-      flex-direction: column;
-    }
-    #mainContainer {
-      display: flex;
-      flex-direction: column;
-      width: 100%; 
+      margin: 0;
+      padding: 0;
+      width: 100%;
       height: 100%;
-    }
-    #outerWrapper {
-      position: relative;
-      flex: 1;
-      width: 100%;
       background: #000;
-      overflow: hidden;
-      display: flex;
-    }
-    #videoContainer {
-      position: relative;
-      width: 100%;
-      background: #000;
-      transition: opacity 1s ease;
-      opacity: 0;
-      margin-top: 30px;
     }
     video {
       width: 100%;
       height: 100%;
       object-fit: contain;
-      background: #000;
       display: block;
-    }
-    #unmuteOverlay {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: #000;
-      z-index: 9999;
-    }
-    #unmuteCircle {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 30vw; height: 30vw;
-      border-radius: 50%;
-      border: 3px solid rgba(255,255,255,0.7);
-      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.15) 0%, rgba(0,0,0,0.6) 70%);
-      cursor: pointer;
-    }
-    #bottomBar {
-      width: 100%; background: transparent;
-    }
-    #controlBar {
-      display: flex; gap: 8px;
-      margin-bottom: 50px; justify-content: center;
-    }
-    .ctrlBtn {
-      width: 50px; height: 50px;
-      background: #333; border: none; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; user-select: none;
-    }
-    .ctrlBtn img {
-      width: 24px; height: 24px;
-      pointer-events: none;
     }
   </style>
 </head>
 <body>
-  <div id="mainContainer">
-    <div id="outerWrapper">
-      <div id="videoContainer">
-        <video 
-          id="videoPlayer" 
-          playsinline 
-          webkit-playsinline
-          disablepictureinpicture
-          controlslist="nodownload nofullscreen noremoteplayback"
-          loop
-        ></video>
-      </div>
-      <div id="unmuteOverlay"><div id="unmuteCircle"></div></div>
-    </div>
-    <div id="bottomBar">
-      <div id="controlBar">
-        <div class="ctrlBtn" id="audioBtn">
-          <img src="https://cdn-icons-png.flaticon.com/512/1828/1828774.png" alt="Audio Off" />
-        </div>
-        <div class="ctrlBtn" id="restartBtn">
-          <img src="https://cdn-icons-png.flaticon.com/512/159/159657.png" alt="Restart" />
-        </div>
-        <div class="ctrlBtn" id="fullBtn">
-          <img src="https://cdn-icons-png.flaticon.com/512/54/54911.png" alt="Fullscreen" />
-        </div>
-      </div>
-    </div>
-  </div>
-
+  <video id="videoPlayer" muted playsinline webkit-playsinline loop></video>
   <script>
-  document.addEventListener('DOMContentLoaded', function(){
-    var videoEl        = document.getElementById('videoPlayer');
-    var videoContainer = document.getElementById('videoContainer');
-    var unmuteOverlay  = document.getElementById('unmuteOverlay');
-    var unmuteCircle   = document.getElementById('unmuteCircle');
-    var audioBtn       = document.getElementById('audioBtn');
-    var restartBtn     = document.getElementById('restartBtn');
-    var fullBtn        = document.getElementById('fullBtn');
-
-    var hlsInstance = null;
-    var isMuted     = true;
-    var isStopped   = true;
-    var stopTimer   = null;
-
-    // KROK 1: Odczytaj parametr stream=R lub Q z URL:
-    // (np. epistream.html?stream=R)
+    // Pobierz parametr "stream" z URL – domyślnie "R" jeśli nie podano
     const urlParams = new URLSearchParams(window.location.search);
-    const streamParam = urlParams.get("stream"); // "R" / "Q"
+    const streamType = urlParams.get('stream') || 'R';
 
-    // KROK 2: Ustal, jakich linków HLS użyć:
-    let theHlsUrl = "";
-    if (streamParam === "R") {
-      theHlsUrl = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
+    // Linki do streamów
+    const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/r-manifest/video.m3u8";
+    const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/q-manifest/video.m3u8";
+    const chosenUrl = (streamType === "R") ? STREAM_R_URL : STREAM_Q_URL;
+
+    const videoEl = document.getElementById("videoPlayer");
+    videoEl.crossOrigin = "anonymous";
+
+    if (Hls.isSupported()){
+      const hls = new Hls();
+      hls.loadSource(chosenUrl);
+      hls.attachMedia(videoEl);
+      hls.on(Hls.Events.MANIFEST_PARSED, function(){
+        videoEl.play().catch(err => console.error("Błąd odtwarzania:", err));
+      });
+    } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")){
+      videoEl.src = chosenUrl;
+      videoEl.play().catch(err => console.error("Błąd odtwarzania (Safari):", err));
     } else {
-      // Domyślnie Q, lub cokolwiek innego
-      theHlsUrl = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
+      console.error("Twoja przeglądarka nie obsługuje HLS.");
     }
-
-    function loadHLS(url, startMuted){
-      if(hlsInstance){
-        hlsInstance.destroy();
-        hlsInstance = null;
-      }
-      if(Hls.isSupported()){
-        hlsInstance = new Hls();
-        hlsInstance.loadSource(url);
-        hlsInstance.attachMedia(videoEl);
-        hlsInstance.on(Hls.Events.MANIFEST_PARSED, function(){
-          videoEl.muted = startMuted;
-          videoEl.play().catch(err => console.warn("play() error in hls.js:", err));
-        });
-      } else if(videoEl.canPlayType("application/vnd.apple.mpegurl")){
-        videoEl.src = url;
-        videoEl.muted = startMuted;
-        videoEl.play().catch(err=>console.warn("play() error in Safari:", err));
-      } else {
-        console.error("Brak wsparcia HLS w tej przeglądarce!");
-      }
-      videoEl.loop = true;
-    }
-
-    function stopStream(){
-      isStopped = true;
-      if(hlsInstance){
-        hlsInstance.destroy();
-        hlsInstance = null;
-      }
-      videoEl.pause();
-      videoEl.removeAttribute("src");
-      videoEl.load();
-      videoEl.muted = true;
-      unmuteOverlay.style.display = "block";
-      videoContainer.style.opacity = "0";
-
-      if(stopTimer){
-        clearTimeout(stopTimer);
-        stopTimer = null;
-      }
-    }
-
-    function fadeOutAndStop(){
-      videoContainer.style.opacity = "0";
-      setTimeout(()=>{ stopStream(); },1000);
-    }
-
-    function fadeVolumeUp(vid, durationMs){
-      var steps = 20;
-      var stepTime = durationMs / steps;
-      var volInc = 1 / steps;
-      var currentVol = 0;
-      var i = setInterval(()=>{
-        currentVol += volInc;
-        if(currentVol >= 1){
-          currentVol = 1;
-          clearInterval(i);
-        }
-        vid.volume = currentVol;
-      }, stepTime);
-    }
-
-    function switchStream(url, startMuted){
-      stopStream();
-      isStopped = false;
-      isMuted = startMuted;
-
-      unmuteOverlay.style.display = "block";
-      videoContainer.style.opacity = "0";
-      loadHLS(url, startMuted);
-
-      var handlePlaying = () => {
-        videoEl.removeEventListener("playing", handlePlaying);
-        videoContainer.style.opacity = "1";
-        if(!isMuted){
-          fadeVolumeUp(videoEl, 1000);
-        }
-      };
-      videoEl.addEventListener("playing", handlePlaying);
-
-      // Timer 2 minut
-      stopTimer = setTimeout(function(){
-        console.log("2 min => stop stream");
-        fadeOutAndStop();
-      }, 2*60*1000);
-    }
-
-    // Automatyczny start
-    switchStream(theHlsUrl, true);
-
-    // Overlay (unmute)
-    unmuteCircle.addEventListener("click", function(){
-      if(isStopped){
-        switchStream(theHlsUrl, false);
-      }
-      isMuted = false;
-      videoEl.volume = 0;
-      videoEl.muted = false;
-      videoEl.play().catch(err=>console.warn("play() error unmute:", err));
-      unmuteOverlay.style.display = "none";
-      fadeVolumeUp(videoEl,1000);
-    });
-
-    // AUDIO BTN
-    audioBtn.addEventListener("click", function(){
-      if(isStopped){
-        console.log("Stream zatrzymany – audio off");
-        return;
-      }
-      if(isMuted){
-        isMuted = false;
-        videoEl.muted = false;
-        videoEl.volume = 0;
-        videoEl.play().catch(err=>console.warn("play() error audioBtn:", err));
-        fadeVolumeUp(videoEl,1000);
-      } else {
-        isMuted = true;
-        videoEl.muted = true;
-      }
-    });
-
-    // RESTART
-    function exitFullscreenIfNeeded(){
-      if(document.fullscreenElement){
-        document.exitFullscreen().catch(err=>console.warn("exitFS:", err));
-      }
-    }
-    restartBtn.addEventListener("click", function(){
-      if(isStopped){
-        console.log("Stream zatrzymany – nie można zrestartować.");
-        return;
-      }
-      var url = theHlsUrl;
-      exitFullscreenIfNeeded();
-      stopStream();
-      setTimeout(()=>{
-        isStopped = false;
-        isMuted = true;
-        unmuteOverlay.style.display = "block";
-        videoContainer.style.opacity = "0";
-        switchStream(url, true);
-      }, 100);
-    });
-
-    // FULLSCREEN
-    fullBtn.addEventListener("click", function(){
-      if(!document.fullscreenElement){
-        document.documentElement.requestFullscreen()
-          .catch(err=>console.warn("requestFullscreen error:", err));
-      } else {
-        document.exitFullscreen()
-          .catch(err=>console.warn("exitFullscreen error:", err));
-      }
-    });
-  });
   </script>
 </body>
 </html>

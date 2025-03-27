@@ -25,7 +25,7 @@
       object-fit: contain;
       display: block;
     }
-    /* Overlay przykrywający cały ekran z czarnym tłem */
+    /* Overlay przykrywający cały ekran (czarne tło) */
     #overlay {
       position: absolute;
       top: 0;
@@ -37,15 +37,15 @@
       opacity: 1;
       transition: opacity 0.5s ease;
     }
-    /* Oba koła będą wyśrodkowane */
-    #clickableCircle, #autoCircle {
+    /* Dwa pulsujące koła – oba wyśrodkowane */
+    #autoCircle, #clickableCircle {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       border-radius: 50%;
     }
-    /* Dodatkowe koło – większe, ustawione za przyciskiem, nie przechwytuje zdarzeń myszy */
+    /* Dodatkowe koło – większe, nie przechwytuje zdarzeń */
     #autoCircle {
       width: 120px;
       height: 120px;
@@ -54,7 +54,7 @@
       z-index: 11;
       pointer-events: none;
     }
-    /* Koło klikane – mniejsze, z wyższym z-index i kursorem pointer */
+    /* Koło klikane – mniejsze, wyższy z-index, kursorem pointer */
     #clickableCircle {
       width: 80px;
       height: 80px;
@@ -79,41 +79,44 @@
     </div>
   </div>
   <script>
-    // Pobierz parametr "stream" z URL – domyślnie "R" jeśli nie podano
+    // Pobierz parametr "stream" z URL – domyślnie ustawiamy "none"
     const urlParams = new URLSearchParams(window.location.search);
-    const streamType = urlParams.get('stream') || 'R';
+    const streamType = urlParams.get('stream') || 'none';
 
-    // Aktualne linki do streamów
+    // Definicje linków do streamów
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
-    const chosenUrl = (streamType === "R") ? STREAM_R_URL : STREAM_Q_URL;
-
+    
+    // Jeśli streamType jest R lub Q – ustawiamy link, w przeciwnym razie (none) nie ładujemy strumienia
+    const chosenUrl = (streamType === "R") ? STREAM_R_URL : (streamType === "Q" ? STREAM_Q_URL : null);
     const videoEl = document.getElementById("videoPlayer");
 
-    // Inicjalizacja odtwarzania HLS:
-    if (Hls.isSupported()){
-      const hls = new Hls();
-      hls.loadSource(chosenUrl);
-      hls.attachMedia(videoEl);
-      hls.on(Hls.Events.MANIFEST_PARSED, function(){
-        videoEl.play().catch(err => console.error("Błąd odtwarzania:", err));
-      });
-    } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")){
-      videoEl.src = chosenUrl;
-      videoEl.load();
-      videoEl.addEventListener("loadedmetadata", function() {
-        videoEl.play().catch(err => console.error("Błąd odtwarzania na Safari:", err));
-      });
-    } else {
-      console.error("Twoja przeglądarka nie obsługuje HLS.");
+    if (chosenUrl) {
+      // Jeśli podano R lub Q, inicjalizujemy odtwarzanie
+      if (Hls.isSupported()){
+        const hls = new Hls();
+        hls.loadSource(chosenUrl);
+        hls.attachMedia(videoEl);
+        hls.on(Hls.Events.MANIFEST_PARSED, function(){
+          videoEl.play().catch(err => console.error("Błąd odtwarzania:", err));
+        });
+      } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")){
+        videoEl.src = chosenUrl;
+        videoEl.load();
+        videoEl.addEventListener("loadedmetadata", function() {
+          videoEl.play().catch(err => console.error("Błąd odtwarzania na Safari:", err));
+        });
+      } else {
+        console.error("Twoja przeglądarka nie obsługuje HLS.");
+      }
     }
-
-    // Obsługa overlay – kliknięcie na koło klikane (clickableCircle)
+    
+    // Obsługa overlay – kliknięcie na klikane koło powoduje unmute i fade-out overlay
     const overlay = document.getElementById("overlay");
     const clickableCircle = document.getElementById("clickableCircle");
     clickableCircle.addEventListener("click", function(){
-      videoEl.muted = false; // włącz dźwięk
-      overlay.style.opacity = "0"; // fade-out overlay
+      videoEl.muted = false; // włączenie dźwięku
+      overlay.style.opacity = "0"; // efekt fade-out
       setTimeout(() => {
         overlay.style.display = "none";
       }, 500);

@@ -80,20 +80,20 @@
       50%  { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
-    /* Kontener przycisków – wyśrodkowany na dole z wysokim z-index */
+    /* Kontener przycisków – wyśrodkowany na dole */
     #iconButtons {
       position: absolute;
       bottom: 10px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 30;
+      z-index: 20;
       display: flex;
       flex-direction: row;
       gap: 10px;
       justify-content: center;
       align-items: center;
     }
-    /* Styl przycisków – czarne tło, delikatny jasny cień */
+    /* Przyciski – domyślnie czarne tło */
     #iconButtons button {
       background: #000;
       border: none;
@@ -103,10 +103,9 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      transition: background 0.3s, box-shadow 0.3s;
-      box-shadow: 0 2px 4px rgba(255, 255, 255, 0.3);
+      transition: background 0.3s, color 0.3s;
     }
-    /* Ikony – domyślnie jasnoszare */
+    /* Ikony – domyślnie w kolorze jasnoszarym */
     #iconButtons button svg {
       display: block;
       width: 24px;
@@ -114,10 +113,9 @@
       fill: #d3d3d3;
       transition: fill 0.3s;
     }
-    /* Efekt hover – tło zmienia się na jasnoszare, ikony na czarne */
+    /* Efekt hover – tło jasnoszare, ikony czarne */
     #iconButtons button:hover {
       background: #d3d3d3;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
     #iconButtons button:hover svg {
       fill: #000;
@@ -150,17 +148,17 @@
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
-    // Definicje linków do streamów
+    // Linki do streamów
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
     
-    // Wybór URL dla streamu R lub Q – przy "none" pozostajemy w stanie placeholder
+    // Wybór URL na podstawie parametru stream
     const chosenUrl = (streamType === "R") ? STREAM_R_URL : (streamType === "Q" ? STREAM_Q_URL : null);
     const videoEl = document.getElementById("videoPlayer");
     const pulseCircle = document.getElementById("pulseCircle");
     let timerID = null;
 
-    // Dodanie odpowiedniej klasy glow dla streamu
+    // Dodanie odpowiedniej klasy glow dla streamów
     if (streamType === "R") {
       pulseCircle.classList.add("glow-r");
     } else if (streamType === "Q") {

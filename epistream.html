@@ -37,29 +37,17 @@
       opacity: 1;
       transition: opacity 0.5s ease;
     }
-    /* Pulsujące koła – oba wyśrodkowane */
-    #autoCircle, #clickableCircle {
+    /* Jedno pulsujące koło – wyśrodkowane, pełni funkcję przycisku */
+    #pulseCircle {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      border-radius: 50%;
-    }
-    /* AutoCircle – większe, standardowy efekt pulsowania, nie przechwytuje kliknięć */
-    #autoCircle {
       width: 120px;
       height: 120px;
-      border: 4px solid rgba(255, 255, 255, 0.6);
+      border: 4px solid rgba(255,255,255,0.8);
+      border-radius: 50%;
       animation: pulse 3s infinite;
-      z-index: 11;
-      pointer-events: none;
-    }
-    /* ClickableCircle – mniejsze, pełniące funkcję przycisku */
-    #clickableCircle {
-      width: 80px;
-      height: 80px;
-      border: 4px solid rgba(255, 255, 255, 0.9);
-      animation: pulse 2s infinite;
       z-index: 12;
       cursor: pointer;
     }
@@ -68,32 +56,17 @@
       50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
-    /* Glow effect – dodawany po wybraniu streamu */
-    .glow-r {
-      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.8) 70%);
-      animation: pulseGlow 2s infinite;
-    }
-    .glow-q {
-      background: radial-gradient(circle at 50% 50%, rgba(173,216,230,0.4) 0%, rgba(173,216,230,0.8) 70%);
-      animation: pulseGlow 2s infinite;
-    }
-    @keyframes pulseGlow {
-      0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-      50%  { transform: translate(-50%, -50%) scale(1.1); opacity: 0.8; }
-      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-    }
   </style>
 </head>
 <body>
   <div id="videoContainer">
     <video id="videoPlayer" muted playsinline webkit-playsinline loop></video>
     <div id="overlay">
-      <div id="autoCircle"></div>
-      <div id="clickableCircle"></div>
+      <div id="pulseCircle"></div>
     </div>
   </div>
   <script>
-    // Pobierz parametr "stream" z URL – domyślnie "none"
+    // Pobierz parametr "stream" z URL – domyślnie ustawiamy "none"
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
@@ -104,16 +77,8 @@
     // Jeśli streamType jest "R" lub "Q", wybieramy link; przy "none" nie inicjujemy streamu
     const chosenUrl = (streamType === "R") ? STREAM_R_URL : (streamType === "Q" ? STREAM_Q_URL : null);
     const videoEl = document.getElementById("videoPlayer");
+    let timerID = null;
 
-    // Jeśli został wybrany strumień, dodajemy odpowiednią poświatę do obu kół
-    if (streamType === "R") {
-      document.getElementById("autoCircle").classList.add("glow-r");
-      document.getElementById("clickableCircle").classList.add("glow-r");
-    } else if (streamType === "Q") {
-      document.getElementById("autoCircle").classList.add("glow-q");
-      document.getElementById("clickableCircle").classList.add("glow-q");
-    }
-    
     if (chosenUrl) {
       if (Hls.isSupported()){
         const hls = new Hls();
@@ -132,18 +97,17 @@
         console.error("Twoja przeglądarka nie obsługuje HLS.");
       }
     }
-    
-    // Obsługa kliknięcia w clickableCircle:
-    // - Unmute (włączenie dźwięku)
-    // - Fade-out overlay (odkrycie wideo)
-    // - Uruchomienie 2-minutowego timera – po upływie czasu nastąpi reset (powrót do placeholdera)
+
+    // Obsługa kliknięcia w pulseCircle – to jedyne koło, które działa jako przycisk
     const overlay = document.getElementById("overlay");
-    const clickableCircle = document.getElementById("clickableCircle");
-    clickableCircle.addEventListener("click", function(){
-      videoEl.muted = false;
-      overlay.style.opacity = "0";
+    const pulseCircle = document.getElementById("pulseCircle");
+    pulseCircle.addEventListener("click", function(){
+      videoEl.muted = false; // włącz audio
+      overlay.style.opacity = "0"; // fade-out overlay
       setTimeout(() => { overlay.style.display = "none"; }, 500);
-      setTimeout(() => {
+      // Uruchom timer 2-minutowy (120000 ms)
+      if (timerID) clearTimeout(timerID);
+      timerID = setTimeout(() => {
         console.log("2 minuty minęły – reset streamu");
         window.location.href = window.location.pathname + "?stream=none";
       }, 120000);

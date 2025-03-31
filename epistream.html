@@ -6,26 +6,28 @@
   <title>EpiStream Player</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
+    /* Podstawowe wyzerowanie */
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
       background: #000;
-      /* Usuń overflow: hidden, aby paski/przyciski były zawsze widoczne */
-      /* overflow: hidden; */
+      /* Nie ustawiamy overflow: hidden, aby nie ucinać przycisków */
     }
+    /* Kontener wideo – pozycja relative */
     #videoContainer {
-      position: relative;
+      position: relative; 
       width: 100%;
       height: 100%;
+      background: #000;
     }
     video {
       width: 100%;
       height: 100%;
       object-fit: contain;
       display: block;
-      background: #000; /* dla pewności */
+      background: #000;
     }
     /* Overlay – ciemna warstwa z pulsującym kółkiem startu audio */
     #overlay {
@@ -80,28 +82,30 @@
       50%  { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
     }
-    /* Pasek przycisków – ustawiony "fixed", by był widoczny na wszystkich urządzeniach */
+
+    /* Pasek przycisków – Uwaga: position: absolute wewnątrz #videoContainer */
     #iconButtons {
-      position: fixed; /* <- tu zmiana z 'absolute' na 'fixed' */
-      bottom: 10px; 
+      position: absolute; 
+      bottom: 20px; 
       left: 50%;
       transform: translateX(-50%);
       z-index: 9999; 
       display: flex; 
       gap: 10px;
-      /* ewentualnie dodać tło np. background: rgba(0,0,0,0.3); 
-         jeśli chcesz półprzezroczystego paska */
+      padding: 5px 10px;
+      background: rgba(0,0,0,0.4); /* półprzezroczyste tło, by je było widać */
+      border-radius: 8px;
     }
     #iconButtons button {
-      background: #000; 
+      background: none; 
       border: none; 
       border-radius: 4px;
-      padding: 8px; 
       cursor: pointer; 
       display: flex;
       justify-content: center; 
       align-items: center;
       transition: background 0.3s, color 0.3s;
+      padding: 6px;
     }
     #iconButtons button svg {
       width: 24px; 
@@ -126,7 +130,7 @@
       <div id="pulseCircle"></div>
     </div>
 
-    <!-- Ikony Stop i Fullscreen -->
+    <!-- Ikony Stop i Fullscreen (absolutnie wewnątrz #videoContainer) -->
     <div id="iconButtons">
       <button id="stopBtn" title="Zamknij">
         <!-- Ikona Zamknij – kwadrat -->
@@ -142,8 +146,9 @@
       </button>
     </div>
   </div>
+  
   <script>
-    // Pobieramy z parametru 'stream' z URL - standard R/Q
+    // Pobieramy parametry 'stream' z URL - np. ?stream=R
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
@@ -199,7 +204,7 @@
       setTimeout(() => { overlay.style.display = "none"; }, 500);
 
       if (timerID) clearTimeout(timerID);
-      // Ustawiamy 2-minutowy timer, po którym stream się resetuje automatycznie
+      // 2-minutowy timer, po którym stream się resetuje
       timerID = setTimeout(() => {
         console.log("2 minuty minęły – reset streamu");
         resetStream();
@@ -228,11 +233,9 @@
       resetStream();
     });
 
-    // Jeśli user wyjdzie z tej strony/odświeży ją bez klikania "Stop",
-    // wysyłamy do Wix komunikat stopStream, by zapisać czas
+    // Gdy user wyjdzie z tej strony/odświeży ją bez klikania "Stop",
+    // wysyłamy do Wix komunikat stopStream (best effort).
     window.addEventListener("beforeunload", function() {
-      // best effort – nie zawsze się wykona na urządzeniach mobilnych,
-      // ale często wystarczy, by strona jeszcze zdążyła wysłać postMessage
       window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
     });
   </script>

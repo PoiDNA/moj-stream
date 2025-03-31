@@ -143,6 +143,7 @@
       </button>
     </div>
   </div>
+
   <script>
     // Pobierz parametr "stream" z URL – domyślnie "none"
     const urlParams = new URLSearchParams(window.location.search);
@@ -153,19 +154,25 @@
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
     
     // Wybór URL na podstawie parametru stream
-    const chosenUrl = (streamType === "R") ? STREAM_R_URL : (streamType === "Q" ? STREAM_Q_URL : null);
+    const chosenUrl = (streamType === "R") 
+        ? STREAM_R_URL 
+        : (streamType === "Q" 
+            ? STREAM_Q_URL 
+            : null);
+
     const videoEl = document.getElementById("videoPlayer");
     const pulseCircle = document.getElementById("pulseCircle");
+    const overlay = document.getElementById("overlay");
     let timerID = null;
 
-    // Dodanie odpowiedniej klasy glow dla streamów
+    // Dodanie klasy glow do pulsującego koła, zależnie od streamu
     if (streamType === "R") {
       pulseCircle.classList.add("glow-r");
     } else if (streamType === "Q") {
       pulseCircle.classList.add("glow-q");
     }
 
-    // Inicjalizacja wideo, gdy wybrano stream R lub Q
+    // Inicjalizacja wideo – tylko gdy wybrano "R" lub "Q"
     if (chosenUrl) {
       if (Hls.isSupported()){
         const hls = new Hls();
@@ -174,13 +181,15 @@
         hls.on(Hls.Events.MANIFEST_PARSED, function(){
           videoEl.play().catch(err => console.error("Błąd odtwarzania:", err));
         });
-      } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")){
+      } 
+      else if (videoEl.canPlayType("application/vnd.apple.mpegurl")){
         videoEl.src = chosenUrl;
         videoEl.load();
         videoEl.addEventListener("loadedmetadata", function() {
           videoEl.play().catch(err => console.error("Błąd odtwarzania na Safari:", err));
         });
-      } else {
+      } 
+      else {
         console.error("Twoja przeglądarka nie obsługuje HLS.");
       }
     }
@@ -188,20 +197,39 @@
     // Funkcja resetująca stream – powrót do stanu placeholder (stream=none)
     function resetStream() {
       videoEl.pause();
+      // Opcjonalnie: wysyłamy usera do ?stream=none
+      // lub można zrobić cokolwiek innego (np. window.close())
       window.location.href = window.location.pathname + "?stream=none";
     }
 
-    // Obsługa kliknięcia pulsującego koła – włącza audio, ukrywa overlay i uruchamia timer
+    // Obsługa kliknięcia pulsującego koła – włącza audio, ukrywa overlay, wysyła "startStream" do rodzica
     pulseCircle.addEventListener("click", function(){
       videoEl.muted = false;
-      const overlay = document.getElementById("overlay");
       overlay.style.opacity = "0";
       setTimeout(() => { overlay.style.display = "none"; }, 500);
+
+      // Komunikat do strony nadrzędnej (Wix) -> start stream
+      window.parent.postMessage({ action: "startStream" }, "*");
+
+      // Uruchamiamy timer 2 min, po którym automatycznie STOP i reset
       if (timerID) clearTimeout(timerID);
       timerID = setTimeout(() => {
-        console.log("2 minuty minęły – reset streamu");
+        console.log("2 minuty minęły – wysyłanie stopStream i reset...");
+        // Najpierw powiadamiamy rodzica:
+        window.parent.postMessage({ action: "stopStream" }, "*");
+        // Potem reset strumienia:
         resetStream();
       }, 120000);
+    });
+
+    // Obsługa przycisku STOP – wysyła "stopStream" do rodzica, resetuje
+    const stopBtn = document.getElementById("stopBtn");
+    stopBtn.addEventListener("click", function(){
+      if (timerID) clearTimeout(timerID);
+      // Wysyłamy komunikat do strony Wix -> stop stream
+      window.parent.postMessage({ action: "stopStream" }, "*");
+      // Reset do stanu "none"
+      resetStream();
     });
 
     // Obsługa przycisku Fullscreen – przełącza tryb pełnoekranowy
@@ -213,13 +241,6 @@
       } else {
         document.exitFullscreen().catch(err => console.error("Błąd wyjścia z Fullscreen:", err));
       }
-    });
-
-    // Obsługa przycisku Zamknij – resetuje stream
-    const stopBtn = document.getElementById("stopBtn");
-    stopBtn.addEventListener("click", function(){
-      if (timerID) clearTimeout(timerID);
-      resetStream();
     });
   </script>
 </body>

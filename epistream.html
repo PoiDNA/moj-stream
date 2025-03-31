@@ -77,10 +77,10 @@
       100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
     }
 
-    /* Pasek przycisków */
+    /* Pasek przycisków – widoczny zawsze */
     #iconButtons {
       position: absolute; 
-      bottom: 45px;  /* możesz zmienić w razie potrzeby */
+      bottom: 45px;     /* odstęp od dołu */
       left: 50%;
       transform: translateX(-50%);
       z-index: 9999; 
@@ -98,22 +98,22 @@
       display: flex;
       justify-content: center; 
       align-items: center;
-      transition: background 0.3s, color 0.3s;
       padding: 6px;
+      /* Usunięcie transition, żeby nie było opóźnień/zanikania */
+      transition: none;
     }
-    /* Jasnofioletowe ikony domyślnie */
+    /* Domyślny jasny kolor ikon – tak samo na desktop i mobile */
     #iconButtons button svg {
       width: 24px; 
       height: 24px; 
-      fill: #CE93D8; /* jasnofioletowy */
-      transition: fill 0.3s;
+      fill: #CE93D8; 
     }
-    /* Po najechaniu – tło jasnoszare, ikony czarne */
+    /* Nie zmieniamy koloru przy hover – żeby nie „znikały” przed hover */
     #iconButtons button:hover {
-      background: #d3d3d3;
+      background: none;
     }
     #iconButtons button:hover svg {
-      fill: #000;
+      fill: #CE93D8; /* zostawiamy ten sam kolor */
     }
   </style>
 </head>
@@ -126,14 +126,13 @@
     </div>
 
     <div id="iconButtons">
-      <!-- Nowa ikona STOP (kwadrat) -->
+      <!-- Ikona STOP -->
       <button id="stopBtn" title="Zamknij">
         <svg viewBox="0 0 24 24">
           <path fill="currentColor" d="M6 6h12v12H6z"/>
         </svg>
       </button>
-
-      <!-- Nowa ikona FULLSCREEN (klasyczna Material Icon) -->
+      <!-- Ikona FULLSCREEN -->
       <button id="fullscreenBtn" title="Fullscreen">
         <svg viewBox="0 0 24 24">
           <path fill="currentColor" 
@@ -144,11 +143,9 @@
   </div>
   
   <script>
-    // Parametr 'stream' z URL - np. ?stream=R
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
-    // Linki do Cloudflare Stream
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
     const chosenUrl = (streamType === "R") 
@@ -184,13 +181,13 @@
       }
     }
 
-    // Funkcja resetująca stream -> wraca do "?stream=none"
+    // reset stream
     function resetStream() {
       videoEl.pause();
       window.location.href = window.location.pathname + "?stream=none";
     }
 
-    // Kliknięcie w pulsujące koło -> unmute, schowaj overlay, start timera
+    // Pulsujące koło -> unmute, schowaj overlay, start timera
     pulseCircle.addEventListener("click", function() {
       videoEl.muted = false;
       const overlay = document.getElementById("overlay");
@@ -206,7 +203,7 @@
       window.parent.postMessage({ action: "startStream", stream: streamType }, "*");
     });
 
-    // Obsługa fullscreen
+    // Fullscreen
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     fullscreenBtn.addEventListener("click", function() {
       const container = document.getElementById("videoContainer");
@@ -217,7 +214,7 @@
       }
     });
 
-    // Obsługa przycisku Stop
+    // Stop
     const stopBtn = document.getElementById("stopBtn");
     stopBtn.addEventListener("click", function() {
       if (timerID) clearTimeout(timerID);
@@ -225,8 +222,7 @@
       resetStream();
     });
 
-    // Gdy user wyjdzie z tej strony/odświeży ją bez klikania "Stop",
-    // wysyłamy do Wix komunikat stopStream (best effort).
+    // Wyjście ze strony – best effort wysłanie "stopStream"
     window.addEventListener("beforeunload", function() {
       window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
     });

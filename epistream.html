@@ -39,7 +39,7 @@
       transition: opacity 0.5s ease;
       pointer-events: none;
     }
-    /* Pulsujące koło – element startowy z tekstem "Start" lub "Ładowanie..." */
+    /* Pulsujące koło – element startowy */
     #pulseCircle {
       position: absolute;
       top: 50%; left: 50%;
@@ -144,7 +144,7 @@
   </div>
 
   <script>
-    // Jeśli użytkownik korzysta ze smartfona, chowamy przycisk Fullscreen
+    // Jeśli korzystamy ze smartfona, chowamy przycisk Fullscreen
     const isSmartphone = /Android|iPhone|iPod|IEMobile|Opera Mini|BlackBerry/i.test(navigator.userAgent);
     if (isSmartphone) {
       document.getElementById("fullscreenBtn").style.display = "none";
@@ -163,7 +163,7 @@
     const overlay = document.getElementById("overlay");
     const pulseCircle = document.getElementById("pulseCircle");
     let timerID = null; // do auto-stopu
-    let isLoading = false; // flaga dla ładowania
+    let isLoading = false; // flaga ładowania
 
     // Dodajemy glow dla R lub Q
     if (streamType === "R") {
@@ -192,17 +192,17 @@
 
     /**
      * Kliknięcie pulsującego koła (Start):
-     * - Wyświetla animację ładowania na 3 sekundy,
+     * - Uruchamia animację ładowania (3 sekundy),
      * - Po 3 sekundach: audio zostaje włączone (unmute), overlay znika,
      *   a wysyłany jest komunikat "startStream" do rodzica.
      */
     pulseCircle.addEventListener("click", function() {
       if (isLoading) return;
       isLoading = true;
-
+      
       pulseCircle.textContent = "Ładowanie...";
       pulseCircle.style.animation = "none";
-
+      
       setTimeout(() => {
         videoEl.muted = false;
         overlay.style.opacity = "0";
@@ -253,10 +253,15 @@
 
     /**
      * Przed opuszczeniem strony – wysyłamy komunikat "stopStream"
-     * Aby w przypadku zamknięcia strony rekord został uzupełniony z momentem wyjścia.
+     * Aby przy zamknięciu strony rekord został uzupełniony (z domyślnym duration 2 min, jeśli nie było stop)
      */
     window.addEventListener("beforeunload", function() {
       window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
+    });
+    document.addEventListener("visibilitychange", function() {
+      if (document.visibilityState === "hidden") {
+        window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
+      }
     });
   </script>
 </body>

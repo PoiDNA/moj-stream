@@ -122,8 +122,8 @@
     </div>
 
     <div id="iconButtons">
-      <!-- STOP (mute-only) -->
-      <button id="stopBtn" title="Wycisz audio">
+      <!-- STOP (zatrzymanie streamu w DB) -->
+      <button id="stopBtn" title="Zakończ sesję">
         <svg viewBox="0 0 24 24">
           <path fill="currentColor" d="M6 6h12v12H6z"/>
         </svg>
@@ -140,25 +140,22 @@
 
   <script>
     // Sprawdzamy, czy userAgent wskazuje na smartphone
-    // (wzorzec można rozszerzyć)
     const isSmartphone = /Android|iPhone|iPod|IEMobile|Opera Mini|BlackBerry/i.test(navigator.userAgent);
-
     // Jeśli to smartphone -> chowamy fullscreen:
     if (isSmartphone) {
-      const fsBtn = document.getElementById("fullscreenBtn");
-      fsBtn.style.display = "none";
+      document.getElementById("fullscreenBtn").style.display = "none";
     }
 
-    /* Parametr "stream" */
+    // Pobranie parametru "stream"
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
-    /* Linki do strumieni */
+    // Linki do strumieni
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
-    const chosenUrl = (streamType === "R") ? STREAM_R_URL
-                  : (streamType === "Q") ? STREAM_Q_URL
-                  : null;
+    const chosenUrl = (streamType === "R") 
+      ? STREAM_R_URL 
+      : (streamType === "Q" ? STREAM_Q_URL : null);
 
     const videoEl = document.getElementById("videoPlayer");
     const overlay = document.getElementById("overlay");
@@ -190,35 +187,49 @@
       }
     }
 
-    /** Start audio – kliknięcie kółka */
+    /**
+     * Start audio – kliknięcie kółka
+     */
     pulseCircle.addEventListener("click", function() {
       videoEl.muted = false;
       overlay.style.opacity = "0";
       setTimeout(() => { overlay.style.display = "none"; }, 500);
 
       if (timerID) clearTimeout(timerID);
-      // Auto stop – 2 min
+      // Auto-stop – 2 min
       timerID = setTimeout(() => {
         console.log("2 min minęły – auto stop");
         window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
-        doMuteOnly(); // wyciszamy, wideo dalej leci
+        doResetOverlay(); 
       }, 120000);
 
       // Powiadom Wix, że user zaczął audio
       window.parent.postMessage({ action: "startStream", stream: streamType }, "*");
     });
 
-    /** STOP – wycisz, pokaż overlay */
-    document.getElementById("stopBtn").addEventListener("click", doMuteOnly);
+    /**
+     * Przycisk STOP – faktycznie zatrzymuje sesję w bazie (wysyła "stopStream")
+     */
+    document.getElementById("stopBtn").addEventListener("click", function() {
+      console.log("STOP => end session w DB");
+      window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
+      doResetOverlay();
+    });
 
-    function doMuteOnly() {
-      console.log("STOP => mute audio, wideo leci w tle");
+    /**
+     * Funkcja przywracająca overlay (kółko), wyciszająca wideo
+     * – wideo dalej się odtwarza (muted = true), ale w DB sesja jest zakończona
+     */
+    function doResetOverlay() {
       videoEl.muted = true;
       overlay.style.display = "block";
       overlay.style.opacity = "1";
+      if (timerID) clearTimeout(timerID);
     }
 
-    /** FULLSCREEN (tylko na desktop/tablet) */
+    /**
+     * FULLSCREEN (tylko na desktop/tablet)
+     */
     document.getElementById("fullscreenBtn").addEventListener("click", function() {
       const container = document.getElementById("videoContainer");
       if (!document.fullscreenElement) {
@@ -228,7 +239,9 @@
       }
     });
 
-    /** Wyjście ze strony -> best effort stopStream */
+    /**
+     * Wyjście ze strony -> best effort stopStream
+     */
     window.addEventListener("beforeunload", function() {
       window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
     });

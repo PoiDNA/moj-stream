@@ -77,10 +77,10 @@
       100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
     }
 
-    /* Pasek przycisków – odsunięty o 45px od dołu */
+    /* Pasek przycisków */
     #iconButtons {
       position: absolute; 
-      bottom: 45px;    /* <- zamiast 20px */
+      bottom: 45px;  /* możesz zmienić w razie potrzeby */
       left: 50%;
       transform: translateX(-50%);
       z-index: 9999; 
@@ -101,15 +101,14 @@
       transition: background 0.3s, color 0.3s;
       padding: 6px;
     }
-
-    /* Tu ustawiamy jasnofioletowy kolor ikon w stanie normalnym */
+    /* Jasnofioletowe ikony domyślnie */
     #iconButtons button svg {
       width: 24px; 
       height: 24px; 
       fill: #CE93D8; /* jasnofioletowy */
       transition: fill 0.3s;
     }
-    /* Po najechaniu – tło robi się jasnoszare, a ikony czarne (możesz zmienić) */
+    /* Po najechaniu – tło jasnoszare, ikony czarne */
     #iconButtons button:hover {
       background: #d3d3d3;
     }
@@ -127,23 +126,29 @@
     </div>
 
     <div id="iconButtons">
+      <!-- Nowa ikona STOP (kwadrat) -->
       <button id="stopBtn" title="Zamknij">
         <svg viewBox="0 0 24 24">
-          <rect x="6" y="6" width="12" height="12" rx="2" ry="2" fill="currentColor"/>
+          <path fill="currentColor" d="M6 6h12v12H6z"/>
         </svg>
       </button>
+
+      <!-- Nowa ikona FULLSCREEN (klasyczna Material Icon) -->
       <button id="fullscreenBtn" title="Fullscreen">
         <svg viewBox="0 0 24 24">
-          <path fill="currentColor" d="M4 4h6V2H2v8h2V4zm16 0v6h2V2h-8v2h6zm0 16h-6v2h8v-8h-2v6zm-16 0v-6H2v8h8v-2H4z"/>
+          <path fill="currentColor" 
+                d="M7 14h2v3h3v2H7v-5zm10-4h-2V7h-3V5h5v5zM7 7h3V5H5v5h2V7zm8 10h3v-3h2v5h-5v-2z"/>
         </svg>
       </button>
     </div>
   </div>
   
   <script>
+    // Parametr 'stream' z URL - np. ?stream=R
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
+    // Linki do Cloudflare Stream
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
     const chosenUrl = (streamType === "R") 
@@ -179,11 +184,13 @@
       }
     }
 
+    // Funkcja resetująca stream -> wraca do "?stream=none"
     function resetStream() {
       videoEl.pause();
       window.location.href = window.location.pathname + "?stream=none";
     }
 
+    // Kliknięcie w pulsujące koło -> unmute, schowaj overlay, start timera
     pulseCircle.addEventListener("click", function() {
       videoEl.muted = false;
       const overlay = document.getElementById("overlay");
@@ -199,6 +206,7 @@
       window.parent.postMessage({ action: "startStream", stream: streamType }, "*");
     });
 
+    // Obsługa fullscreen
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     fullscreenBtn.addEventListener("click", function() {
       const container = document.getElementById("videoContainer");
@@ -209,6 +217,7 @@
       }
     });
 
+    // Obsługa przycisku Stop
     const stopBtn = document.getElementById("stopBtn");
     stopBtn.addEventListener("click", function() {
       if (timerID) clearTimeout(timerID);
@@ -216,6 +225,8 @@
       resetStream();
     });
 
+    // Gdy user wyjdzie z tej strony/odświeży ją bez klikania "Stop",
+    // wysyłamy do Wix komunikat stopStream (best effort).
     window.addEventListener("beforeunload", function() {
       window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
     });

@@ -25,47 +25,33 @@
       object-fit: contain;
       display: block;
     }
-    /* Overlay – czarne tło przykrywające wideo */
     #overlay {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #000;
-      z-index: 10;
-      opacity: 1;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: #000; z-index: 10; opacity: 1;
       transition: opacity 0.5s ease;
     }
-    /* Pulsujące koło – przycisk audio */
     #pulseCircle {
-      position: absolute;
-      top: 50%;
-      left: 50%;
+      position: absolute; top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: 120px;
-      height: 120px;
+      width: 120px; height: 120px;
       border: 4px solid rgba(255,255,255,0.9);
       border-radius: 50%;
       animation: pulse 3s infinite;
-      z-index: 12;
-      cursor: pointer;
+      z-index: 12; cursor: pointer;
     }
     @keyframes pulse {
-      0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-      50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
-      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      50%{ transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
+      100%{transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
-    /* Efekt pulsowania – pseudo-element */
     #pulseCircle.glow-r::after,
     #pulseCircle.glow-q::after {
       content: "";
       position: absolute;
-      top: 50%;
-      left: 50%;
+      top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: 80%;
-      height: 80%;
+      width: 80%; height: 80%;
       border-radius: 50%;
       animation: pulseGlow 2s infinite;
     }
@@ -76,44 +62,25 @@
       box-shadow: 0 0 15px 5px rgba(173,216,230,0.8);
     }
     @keyframes pulseGlow {
-      0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-      50%  { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
-      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      50%{ transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
+      100%{transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
-    /* Kontener przycisków – wyśrodkowany na dole */
     #iconButtons {
-      position: absolute;
-      bottom: 10px;
-      left: 50%;
+      position: absolute; bottom: 10px; left: 50%;
       transform: translateX(-50%);
-      z-index: 20;
-      display: flex;
-      flex-direction: row;
-      gap: 10px;
-      justify-content: center;
-      align-items: center;
+      z-index: 20; display: flex; gap: 10px;
     }
-    /* Przyciski – domyślnie czarne tło */
     #iconButtons button {
-      background: #000;
-      border: none;
-      border-radius: 4px;
-      padding: 8px;
-      cursor: pointer;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      background: #000; border: none; border-radius: 4px;
+      padding: 8px; cursor: pointer; display: flex;
+      justify-content: center; align-items: center;
       transition: background 0.3s, color 0.3s;
     }
-    /* Ikony – domyślnie w kolorze jasnoszarym */
     #iconButtons button svg {
-      display: block;
-      width: 24px;
-      height: 24px;
-      fill: #d3d3d3;
+      width: 24px; height: 24px; fill: #d3d3d3;
       transition: fill 0.3s;
     }
-    /* Efekt hover – tło jasnoszare, ikony czarne */
     #iconButtons button:hover {
       background: #d3d3d3;
     }
@@ -130,7 +97,7 @@
     </div>
     <div id="iconButtons">
       <button id="stopBtn" title="Zamknij">
-        <!-- Ikona Zamknij – kwadrat z zaokrąglonymi rogami -->
+        <!-- Ikona Zamknij – kwadrat -->
         <svg viewBox="0 0 24 24">
           <rect x="6" y="6" width="12" height="12" rx="2" ry="2" fill="currentColor"/>
         </svg>
@@ -144,28 +111,23 @@
     </div>
   </div>
   <script>
-    // Pobierz parametr "stream" z URL – domyślnie "none"
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
-    // Linki do streamów
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
-    
-    // Wybór URL na podstawie parametru stream
-    const chosenUrl = (streamType === "R") ? STREAM_R_URL : (streamType === "Q" ? STREAM_Q_URL : null);
+
+    const chosenUrl = (streamType === "R") 
+      ? STREAM_R_URL 
+      : (streamType === "Q" ? STREAM_Q_URL : null);
+
     const videoEl = document.getElementById("videoPlayer");
     const pulseCircle = document.getElementById("pulseCircle");
     let timerID = null;
 
-    // Dodanie odpowiedniej klasy glow dla streamów
-    if (streamType === "R") {
-      pulseCircle.classList.add("glow-r");
-    } else if (streamType === "Q") {
-      pulseCircle.classList.add("glow-q");
-    }
+    if (streamType === "R") pulseCircle.classList.add("glow-r");
+    else if (streamType === "Q") pulseCircle.classList.add("glow-q");
 
-    // Inicjalizacja wideo, gdy wybrano stream R lub Q
     if (chosenUrl) {
       if (Hls.isSupported()){
         const hls = new Hls();
@@ -177,48 +139,47 @@
       } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")){
         videoEl.src = chosenUrl;
         videoEl.load();
-        videoEl.addEventListener("loadedmetadata", function() {
-          videoEl.play().catch(err => console.error("Błąd odtwarzania na Safari:", err));
-        });
+        videoEl.play().catch(err => console.error("Błąd Safari:", err));
       } else {
         console.error("Twoja przeglądarka nie obsługuje HLS.");
       }
     }
 
-    // Funkcja resetująca stream – powrót do stanu placeholder (stream=none)
     function resetStream() {
       videoEl.pause();
       window.location.href = window.location.pathname + "?stream=none";
     }
 
-    // Obsługa kliknięcia pulsującego koła – włącza audio, ukrywa overlay i uruchamia timer
     pulseCircle.addEventListener("click", function(){
       videoEl.muted = false;
       const overlay = document.getElementById("overlay");
       overlay.style.opacity = "0";
       setTimeout(() => { overlay.style.display = "none"; }, 500);
+
       if (timerID) clearTimeout(timerID);
       timerID = setTimeout(() => {
         console.log("2 minuty minęły – reset streamu");
         resetStream();
       }, 120000);
+
+      // Wyślij do parent iframe komunikat "startStream"
+      window.parent.postMessage({ action: "startStream", stream: streamType }, "*");
     });
 
-    // Obsługa przycisku Fullscreen – przełącza tryb pełnoekranowy
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     fullscreenBtn.addEventListener("click", function(){
       const container = document.getElementById("videoContainer");
       if (!document.fullscreenElement) {
-        container.requestFullscreen().catch(err => console.error("Błąd Fullscreen:", err));
+        container.requestFullscreen().catch(err => console.error("Fullscreen error:", err));
       } else {
-        document.exitFullscreen().catch(err => console.error("Błąd wyjścia z Fullscreen:", err));
+        document.exitFullscreen().catch(err => console.error("Exit FS error:", err));
       }
     });
 
-    // Obsługa przycisku Zamknij – resetuje stream
     const stopBtn = document.getElementById("stopBtn");
     stopBtn.addEventListener("click", function(){
       if (timerID) clearTimeout(timerID);
+      window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
       resetStream();
     });
   </script>

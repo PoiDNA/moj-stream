@@ -10,39 +10,36 @@
     html, body {
       margin: 0; padding: 0;
       width: 100%; height: 100%;
-      background: #000; /* ciemne tło wokół */
+      background: #000;
     }
 
     /* Kontener wideo */
     #videoContainer {
       position: relative;
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       background: #000;
     }
     video {
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       object-fit: contain;
       display: block;
       background: #000;
     }
 
     /* Nakładka – overlay: pointer-events: none,
-       by nie blokowała dostępu do przycisków */
+       by nie blokowała paska przycisków */
     #overlay {
       position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
       background: #000;
-      z-index: 10;  /* Mniejsze niż #iconButtons */
+      z-index: 10;  /* Niższy od #iconButtons */
       opacity: 1;
       transition: opacity 0.5s ease;
       pointer-events: none; /* Nie przechwytuje kliknięć */
     }
 
-    /* Pulsujące koło – przywracamy pointer-events: auto,
-       aby można je kliknąć */
+    /* Pulsujące koło: pointer-events: auto, by je kliknąć */
     #pulseCircle {
       position: absolute;
       top: 50%; left: 50%;
@@ -56,11 +53,11 @@
       pointer-events: auto;
     }
     @keyframes pulse {
-      0% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
-      50%{ transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
-      100%{transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+      0%   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+      50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
+      100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
     }
-    /* Glow dla R/Q */
+    /* Glow R / Q */
     #pulseCircle.glow-r::after,
     #pulseCircle.glow-q::after {
       content: "";
@@ -78,27 +75,26 @@
       box-shadow: 0 0 15px 5px rgba(173,216,230,0.8);
     }
     @keyframes pulseGlow {
-      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-      50%{transform: translate(-50%, -50%) scale(1.1); opacity: 0.7;}
-      100%{transform: translate(-50%, -50%) scale(1); opacity: 1;}
+      0%   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+      50%  { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
+      100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
     }
 
-    /* Pasek przycisków – białe tło, aby widać było czarne ikony od razu */
+    /* Pasek przycisków – białe tło, by zawsze widzieć czarne ikony */
     #iconButtons {
       position: absolute;
       bottom: 45px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 999999; /* Wyżej niż overlay (10) i koło (12) */
+      z-index: 999999; /* nad overlay (10) i kołem (12) */
       display: flex; gap: 15px;
       padding: 10px 14px;
       background: #fff; /* białe tło */
       border-radius: 8px;
     }
-    /* Wyłączamy hover, transitions itp. */
     #iconButtons button,
     #iconButtons button svg {
-      -webkit-appearance: none; /* dla Safari */
+      -webkit-appearance: none; /* Safari fix */
       appearance: none;
     }
     #iconButtons button {
@@ -109,33 +105,29 @@
       align-items: center;
       justify-content: center;
     }
-    /* Ikony natychmiast czarne (fill: #000) */
+    /* Ikony od razu czarne */
     #iconButtons button svg {
-      width: 28px;
-      height: 28px;
+      width: 28px; height: 28px;
       fill: #000 !important; /* czarny */
     }
   </style>
 </head>
 <body>
   <div id="videoContainer">
-    <!-- WIDEO -->
     <video id="videoPlayer" muted playsinline webkit-playsinline loop></video>
 
-    <!-- Nakładka z pulsującym kołem -->
+    <!-- Overlay z pulsującym kołem -->
     <div id="overlay">
       <div id="pulseCircle"></div>
     </div>
 
-    <!-- Pasek przycisków -->
+    <!-- Pasek przycisków: STOP i FULLSCREEN -->
     <div id="iconButtons">
-      <!-- STOP -->
-      <button id="stopBtn" title="Stop">
+      <button id="stopBtn" title="Wycisz audio (strumień w tle)">
         <svg viewBox="0 0 24 24">
           <path fill="currentColor" d="M6 6h12v12H6z"/>
         </svg>
       </button>
-      <!-- FULLSCREEN -->
       <button id="fullscreenBtn" title="Fullscreen">
         <svg viewBox="0 0 24 24">
           <path fill="currentColor"
@@ -146,24 +138,23 @@
   </div>
 
   <script>
-    // Parametr "stream" z URL
+    // Parametr "stream"
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
-    // Strumienie CF
+    // Linki do strumieni
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
     const chosenUrl = (streamType === "R") ? STREAM_R_URL
-                   : (streamType === "Q") ? STREAM_Q_URL
-                   : null;
+                  : (streamType === "Q") ? STREAM_Q_URL
+                  : null;
 
     const videoEl = document.getElementById("videoPlayer");
     const overlay = document.getElementById("overlay");
     const pulseCircle = document.getElementById("pulseCircle");
+    let timerID = null; // do 2-minutowego auto-stopu
 
-    let timerID = null;
-
-    // Glow w zależności od R/Q
+    // Glow R/Q
     if (streamType === "R") {
       pulseCircle.classList.add("glow-r");
     } else if (streamType === "Q") {
@@ -176,69 +167,63 @@
         const hls = new Hls();
         hls.loadSource(chosenUrl);
         hls.attachMedia(videoEl);
-        hls.on(Hls.Events.MANIFEST_PARSED, function(){
-          videoEl.play().catch(err => console.error("Błąd odtwarzania:", err));
+        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+          videoEl.play().catch(err => console.error("Error:", err));
         });
       } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
         videoEl.src = chosenUrl;
         videoEl.load();
-        videoEl.play().catch(err => console.error("Safari:", err));
+        videoEl.play().catch(err => console.error("Safari error:", err));
       } else {
         console.error("Twoja przeglądarka nie obsługuje HLS.");
       }
     }
 
-    /** resetStream – zatrzymuje wideo, przywraca overlay z pulsującym kołem */
-    function resetStream() {
-      videoEl.pause();
-      videoEl.muted = true; // ponowne kliknięcie koła -> unmute
-      overlay.style.display = "block";
-      overlay.style.opacity = "1";
-    }
-
-    /** Gdy user klika pulsujące koło */
+    /** Start audio – user klika pulsujące koło */
     pulseCircle.addEventListener("click", function() {
       videoEl.muted = false;
       overlay.style.opacity = "0";
       setTimeout(() => { overlay.style.display = "none"; }, 500);
 
       if (timerID) clearTimeout(timerID);
-      // Auto-stop po 2 minutach
+      // Auto stop po 2 min
       timerID = setTimeout(() => {
-        console.log("2 minuty – auto stop");
-        // Wyślij do Wix
+        console.log("Auto-stop: 2 min minęły");
         window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
-        resetStream();
+        // Wycisz i pokaż overlay (ale wideo dalej leci)
+        doMuteOnly();
       }, 120000);
 
-      // Start stream w Wix
+      // Zgłoś do Wix, że user zaczął stream (start audio)
       window.parent.postMessage({ action: "startStream", stream: streamType }, "*");
     });
 
-    /** Pełny ekran */
-    const btnFull = document.getElementById("fullscreenBtn");
-    btnFull.addEventListener("click", function() {
+    /** Przycisk STOP – tylko wycisza audio, wideo dalej leci */
+    const stopBtn = document.getElementById("stopBtn");
+    stopBtn.addEventListener("click", doMuteOnly);
+
+    function doMuteOnly() {
+      console.log("Stop => mute audio, stream w tle");
+      videoEl.muted = true;
+      // pokazywanie overlay
+      overlay.style.display = "block";
+      overlay.style.opacity = "1";
+      // NIE wysyłamy 'stopStream' do Wix, bo strumień trwa
+      // NIE pauzujemy wideo => leci w tle
+    }
+
+    /** Przycisk FULLSCREEN */
+    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    fullscreenBtn.addEventListener("click", function() {
       const container = document.getElementById("videoContainer");
       if (!document.fullscreenElement) {
-        container.requestFullscreen().catch(err => console.error("FS error:", err));
+        container.requestFullscreen().catch(err => console.error("Fullscreen error:", err));
       } else {
         document.exitFullscreen().catch(err => console.error("Exit FS error:", err));
       }
     });
 
-    /** Manualne STOP */
-    const btnStop = document.getElementById("stopBtn");
-    btnStop.addEventListener("click", doManualStop);
-
-    function doManualStop() {
-      if (timerID) clearTimeout(timerID);
-      // Sygnalizuj do Wix koniec strumienia
-      window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
-      // Przywróć overlay i pulsujące koło
-      resetStream();
-    }
-
-    /** Gdy user wychodzi z tej strony – best effort STOP */
+    /** Wyjście ze strony – best effort stop usage */
     window.addEventListener("beforeunload", function() {
       window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
     });

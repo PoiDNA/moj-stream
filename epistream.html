@@ -6,16 +6,14 @@
   <title>EpiStream Player</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
-    /* =========== RESET =========== */
+    /* Reset */
     html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      background: #000; /* czarne tło */
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
+      background: #000; /* ciemne tło wokół */
     }
 
-    /* =========== KONTENER WIDEO =========== */
+    /* Kontener wideo */
     #videoContainer {
       position: relative;
       width: 100%;
@@ -30,21 +28,21 @@
       background: #000;
     }
 
-    /* =========== OVERLAY =========== */
-    /* Warstwa nakładki jest "przezroczysta" dla kliknięć (pointer-events: none)
-       dzięki czemu nie blokuje paska przycisków.  */
+    /* Nakładka – overlay: pointer-events: none,
+       by nie blokowała dostępu do przycisków */
     #overlay {
       position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
       background: #000;
-      z-index: 10;       /* Niższy od paska przycisków */
+      z-index: 10;  /* Mniejsze niż #iconButtons */
       opacity: 1;
       transition: opacity 0.5s ease;
-      pointer-events: none; /* overlay nie łapie kliknięć */
+      pointer-events: none; /* Nie przechwytuje kliknięć */
     }
 
-    /* Pulsujące koło – przywracamy pointer-events, by dało się je kliknąć */
+    /* Pulsujące koło – przywracamy pointer-events: auto,
+       aby można je kliknąć */
     #pulseCircle {
       position: absolute;
       top: 50%; left: 50%;
@@ -55,15 +53,14 @@
       animation: pulse 3s infinite;
       z-index: 12;
       cursor: pointer;
-      pointer-events: auto; /* Tylko koło reaguje na kliknięcia */
+      pointer-events: auto;
     }
     @keyframes pulse {
-      0%   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
-      50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
-      100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+      0% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+      50%{ transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
+      100%{transform: translate(-50%, -50%) scale(1);   opacity: 1; }
     }
-
-    /* Efekt glow dla R/Q */
+    /* Glow dla R/Q */
     #pulseCircle.glow-r::after,
     #pulseCircle.glow-q::after {
       content: "";
@@ -81,24 +78,28 @@
       box-shadow: 0 0 15px 5px rgba(173,216,230,0.8);
     }
     @keyframes pulseGlow {
-      0%   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
-      50%  { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
-      100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+      0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      50%{transform: translate(-50%, -50%) scale(1.1); opacity: 0.7;}
+      100%{transform: translate(-50%, -50%) scale(1); opacity: 1;}
     }
 
-    /* =========== PASEK PRZYCISKÓW =========== */
+    /* Pasek przycisków – białe tło, aby widać było czarne ikony od razu */
     #iconButtons {
       position: absolute;
-      bottom: 45px;   /* odsunięcie od dołu */
+      bottom: 45px;
       left: 50%;
       transform: translateX(-50%);
-      /* Z-index wyższy niż overlay (10) i koło (12) */
-      z-index: 99999;
-      display: flex;
-      gap: 15px;
+      z-index: 999999; /* Wyżej niż overlay (10) i koło (12) */
+      display: flex; gap: 15px;
       padding: 10px 14px;
-      background: #fff;  /* Białe tło, ikony czarne */
+      background: #fff; /* białe tło */
       border-radius: 8px;
+    }
+    /* Wyłączamy hover, transitions itp. */
+    #iconButtons button,
+    #iconButtons button svg {
+      -webkit-appearance: none; /* dla Safari */
+      appearance: none;
     }
     #iconButtons button {
       background: transparent;
@@ -107,18 +108,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      /* Brak hover/transition – ikony zawsze takie same */
     }
-
-    /* Ikony od razu czarne (fill: #000) */
+    /* Ikony natychmiast czarne (fill: #000) */
     #iconButtons button svg {
       width: 28px;
       height: 28px;
-      fill: #000; 
-    }
-    /* Bez zmiany koloru na hover */
-    #iconButtons button:hover svg {
-      fill: #000;
+      fill: #000 !important; /* czarny */
     }
   </style>
 </head>
@@ -127,12 +122,12 @@
     <!-- WIDEO -->
     <video id="videoPlayer" muted playsinline webkit-playsinline loop></video>
 
-    <!-- Nakładka (overlay) z kółkiem startowym -->
+    <!-- Nakładka z pulsującym kołem -->
     <div id="overlay">
       <div id="pulseCircle"></div>
     </div>
 
-    <!-- Pasek przycisków z białym tłem i czarnymi ikonami, zawsze widoczny -->
+    <!-- Pasek przycisków -->
     <div id="iconButtons">
       <!-- STOP -->
       <button id="stopBtn" title="Stop">
@@ -155,19 +150,20 @@
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
-    // Strumienie Cloudflare
+    // Strumienie CF
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
-
-    const chosenUrl = (streamType === "R")
-      ? STREAM_R_URL
-      : (streamType === "Q" ? STREAM_Q_URL : null);
+    const chosenUrl = (streamType === "R") ? STREAM_R_URL
+                   : (streamType === "Q") ? STREAM_Q_URL
+                   : null;
 
     const videoEl = document.getElementById("videoPlayer");
+    const overlay = document.getElementById("overlay");
     const pulseCircle = document.getElementById("pulseCircle");
+
     let timerID = null;
 
-    // Glow, jeśli R/Q
+    // Glow w zależności od R/Q
     if (streamType === "R") {
       pulseCircle.classList.add("glow-r");
     } else if (streamType === "Q") {
@@ -186,54 +182,63 @@
       } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
         videoEl.src = chosenUrl;
         videoEl.load();
-        videoEl.play().catch(err => console.error("Błąd Safari:", err));
+        videoEl.play().catch(err => console.error("Safari:", err));
       } else {
         console.error("Twoja przeglądarka nie obsługuje HLS.");
       }
     }
 
-    // reset stream
+    /** resetStream – zatrzymuje wideo, przywraca overlay z pulsującym kołem */
     function resetStream() {
       videoEl.pause();
-      window.location.href = window.location.pathname + "?stream=none";
+      videoEl.muted = true; // ponowne kliknięcie koła -> unmute
+      overlay.style.display = "block";
+      overlay.style.opacity = "1";
     }
 
-    // Kliknięcie w pulsujące koło – unmute, schowaj overlay
+    /** Gdy user klika pulsujące koło */
     pulseCircle.addEventListener("click", function() {
       videoEl.muted = false;
-      const overlay = document.getElementById("overlay");
       overlay.style.opacity = "0";
       setTimeout(() => { overlay.style.display = "none"; }, 500);
 
       if (timerID) clearTimeout(timerID);
-      // 2 minuty, potem auto-stop:
+      // Auto-stop po 2 minutach
       timerID = setTimeout(() => {
-        console.log("2 minuty minęły – reset streamu");
+        console.log("2 minuty – auto stop");
+        // Wyślij do Wix
+        window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
         resetStream();
       }, 120000);
 
-      // Komunikat do strony Wix
+      // Start stream w Wix
       window.parent.postMessage({ action: "startStream", stream: streamType }, "*");
     });
 
-    // Fullscreen
-    document.getElementById("fullscreenBtn").addEventListener("click", function() {
+    /** Pełny ekran */
+    const btnFull = document.getElementById("fullscreenBtn");
+    btnFull.addEventListener("click", function() {
       const container = document.getElementById("videoContainer");
       if (!document.fullscreenElement) {
-        container.requestFullscreen().catch(err => console.error("Fullscreen error:", err));
+        container.requestFullscreen().catch(err => console.error("FS error:", err));
       } else {
         document.exitFullscreen().catch(err => console.error("Exit FS error:", err));
       }
     });
 
-    // Stop
-    document.getElementById("stopBtn").addEventListener("click", function() {
-      if (timerID) clearTimeout(timerID);
-      window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
-      resetStream();
-    });
+    /** Manualne STOP */
+    const btnStop = document.getElementById("stopBtn");
+    btnStop.addEventListener("click", doManualStop);
 
-    // beforeunload – best effort stop
+    function doManualStop() {
+      if (timerID) clearTimeout(timerID);
+      // Sygnalizuj do Wix koniec strumienia
+      window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
+      // Przywróć overlay i pulsujące koło
+      resetStream();
+    }
+
+    /** Gdy user wychodzi z tej strony – best effort STOP */
     window.addEventListener("beforeunload", function() {
       window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
     });

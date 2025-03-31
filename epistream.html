@@ -39,7 +39,7 @@
       transition: opacity 0.5s ease;
       pointer-events: none;
     }
-    /* Pulsujące koło – element startowy */
+    /* Pulsujące koło – element startowy z tekstem "Start" lub "Ładowanie..." */
     #pulseCircle {
       position: absolute;
       top: 50%; left: 50%;
@@ -63,7 +63,7 @@
       50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
     }
-    /* Glow R/Q */
+    /* Glow dla R/Q */
     #pulseCircle.glow-r::after,
     #pulseCircle.glow-q::after {
       content: "";
@@ -163,7 +163,7 @@
     const overlay = document.getElementById("overlay");
     const pulseCircle = document.getElementById("pulseCircle");
     let timerID = null; // do auto-stopu
-    let isLoading = false; // flaga dla animacji ładowania
+    let isLoading = false; // flaga dla ładowania
 
     // Dodajemy glow dla R lub Q
     if (streamType === "R") {
@@ -191,10 +191,10 @@
     }
 
     /**
-     * Kliknięcie pulsującego koła:
+     * Kliknięcie pulsującego koła (Start):
      * - Wyświetla animację ładowania na 3 sekundy,
-     * - Po 3 sekundach: audio zostaje włączone, overlay znika,
-     *   a wysyłany jest komunikat startStream do rodzica.
+     * - Po 3 sekundach: audio zostaje włączone (unmute), overlay znika,
+     *   a wysyłany jest komunikat "startStream" do rodzica.
      */
     pulseCircle.addEventListener("click", function() {
       if (isLoading) return;
@@ -210,7 +210,7 @@
         pulseCircle.textContent = "";
         pulseCircle.style.animation = "";
         isLoading = false;
-        // Wysyłamy komunikat do rodzica, aby utworzył rekord (startStream)
+        // Wysyłamy komunikat do rodzica, aby utworzyć rekord (startStream)
         window.parent.postMessage({ action: "startStream", stream: streamType }, "*");
       }, 3000);
     });
@@ -218,8 +218,8 @@
     /**
      * Przycisk STOP:
      * - Wyłącza audio (muted = true),
-     * - Wysyła komunikat stopStream do rodzica, który aktualizuje rekord,
-     * - Przywraca overlay (pulsujące koło) – tym samym nie tworzy nowego rekordu.
+     * - Wysyła komunikat "stopStream" do rodzica, który aktualizuje rekord,
+     * - Przywraca overlay (pulsujące koło) – wiersz z startTime pozostaje i zostaje uzupełniony.
      */
     document.getElementById("stopBtn").addEventListener("click", function() {
       console.log("STOP => wycisz audio i zakończ sesję w DB");
@@ -240,7 +240,7 @@
     }
 
     /**
-     * FULLSCREEN (tylko na desktop/tablet)
+     * FULLSCREEN – dla desktop/tablet
      */
     document.getElementById("fullscreenBtn").addEventListener("click", function() {
       const container = document.getElementById("videoContainer");
@@ -252,7 +252,8 @@
     });
 
     /**
-     * Przed opuszczeniem strony – wysyłamy do rodzica komunikat stopStream (best effort)
+     * Przed opuszczeniem strony – wysyłamy komunikat "stopStream"
+     * Aby w przypadku zamknięcia strony rekord został uzupełniony z momentem wyjścia.
      */
     window.addEventListener("beforeunload", function() {
       window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");

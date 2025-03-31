@@ -29,18 +29,18 @@
       background: #000;
     }
 
-    /* Overlay: pointer-events: none dla całej warstwy */
+    /* Overlay – całe okno, blokuje dźwięk aż do uruchomienia audio */
     #overlay {
       position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
       background: #000;
-      z-index: 10;  
+      z-index: 10;
       opacity: 1;
       transition: opacity 0.5s ease;
-      pointer-events: none; 
+      pointer-events: none; /* overlay nie blokuje przycisków, chyba że wewnątrz niego */
     }
-    /* Pulsujące koło: pointer-events: auto */
+    /* Pulsujące koło – element startowy, które przyjmuje dodatkowy stan "loading" */
     #pulseCircle {
       position: absolute;
       top: 50%; left: 50%;
@@ -52,13 +52,20 @@
       z-index: 12;
       cursor: pointer;
       pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      color: #fff;
     }
+    /* Domyślna animacja pulsowania */
     @keyframes pulse {
       0%   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
       50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
     }
-    /* Glow R/Q */
+    /* Glow R/Q – pozostaje bez zmian */
     #pulseCircle.glow-r::after,
     #pulseCircle.glow-q::after {
       content: "";
@@ -76,9 +83,9 @@
       box-shadow: 0 0 15px 5px rgba(173,216,230,0.8);
     }
     @keyframes pulseGlow {
-      0%   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+      0%   { transform: translate(-50%, -50%) scale(1); opacity: 1; }
       50%  { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
-      100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
     }
 
     /* Pasek przycisków – białe tło, czarne ikony */
@@ -87,8 +94,8 @@
       bottom: 45px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 999999; 
-      display: flex; 
+      z-index: 999999;
+      display: flex;
       gap: 15px;
       padding: 10px 14px;
       background: #fff;
@@ -109,7 +116,7 @@
     }
     #iconButtons button svg {
       width: 28px; height: 28px;
-      fill: #000 !important; /* czarny */
+      fill: #000 !important;
     }
   </style>
 </head>
@@ -117,18 +124,19 @@
   <div id="videoContainer">
     <video id="videoPlayer" muted playsinline webkit-playsinline loop></video>
 
+    <!-- Overlay z pulsującym kołem -->
     <div id="overlay">
-      <div id="pulseCircle"></div>
+      <div id="pulseCircle">Start</div>
     </div>
 
     <div id="iconButtons">
-      <!-- STOP (zatrzymanie streamu w DB) -->
+      <!-- Przycisk STOP -->
       <button id="stopBtn" title="Zakończ sesję">
         <svg viewBox="0 0 24 24">
           <path fill="currentColor" d="M6 6h12v12H6z"/>
         </svg>
       </button>
-      <!-- FULLSCREEN (chowany na smartfonach) -->
+      <!-- Przycisk FULLSCREEN (chowany na smartfonach) -->
       <button id="fullscreenBtn" title="Fullscreen">
         <svg viewBox="0 0 24 24">
           <path fill="currentColor"
@@ -139,18 +147,17 @@
   </div>
 
   <script>
-    // Sprawdzamy, czy userAgent wskazuje na smartphone
+    // Jeśli użytkownik korzysta ze smartfona, chowamy przycisk Fullscreen
     const isSmartphone = /Android|iPhone|iPod|IEMobile|Opera Mini|BlackBerry/i.test(navigator.userAgent);
-    // Jeśli to smartphone -> chowamy fullscreen:
     if (isSmartphone) {
       document.getElementById("fullscreenBtn").style.display = "none";
     }
 
-    // Pobranie parametru "stream"
+    // Parametr "stream" z URL
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
-    // Linki do strumieni
+    // Linki do Cloudflare Stream
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
     const chosenUrl = (streamType === "R") 
@@ -161,8 +168,9 @@
     const overlay = document.getElementById("overlay");
     const pulseCircle = document.getElementById("pulseCircle");
     let timerID = null; // do auto-stopu
+    let isLoading = false; // flaga dla animacji ładowania
 
-    // Glow R/Q
+    // Dodajemy glow dla R/Q, jeśli to konieczne
     if (streamType === "R") {
       pulseCircle.classList.add("glow-r");
     } else if (streamType === "Q") {
@@ -188,42 +196,58 @@
     }
 
     /**
-     * Start audio – kliknięcie kółka
+     * Kliknięcie pulsującego koła:
+     *  - Wyświetla animację ładowania na 3 sekundy
+     *  - Po 3 sekundach ukrywa overlay i włącza audio (unmute)
+     *  - Wysyła komunikat startStream do rodzica
      */
     pulseCircle.addEventListener("click", function() {
-      videoEl.muted = false;
-      overlay.style.opacity = "0";
-      setTimeout(() => { overlay.style.display = "none"; }, 500);
+      // Jeśli już w trakcie ładowania, nie rób nic
+      if (isLoading) return;
+      isLoading = true;
 
-      if (timerID) clearTimeout(timerID);
-      // Auto-stop – 2 min
-      timerID = setTimeout(() => {
-        console.log("2 min minęły – auto stop");
-        window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
-        doResetOverlay(); 
-      }, 120000);
+      // Zmieniamy zawartość koła na "Ładowanie..."
+      pulseCircle.textContent = "Ładowanie...";
+      // Opcjonalnie można usunąć animację pulsowania w trakcie ładowania:
+      pulseCircle.style.animation = "none";
 
-      // Powiadom Wix, że user zaczął audio
-      window.parent.postMessage({ action: "startStream", stream: streamType }, "*");
+      // Po 3 sekundach włącz audio i ukryj overlay
+      setTimeout(() => {
+        videoEl.muted = false;
+        overlay.style.opacity = "0";
+        setTimeout(() => {
+          overlay.style.display = "none";
+        }, 500);
+        // Przywracamy zawartość koła na pustą (lub ikonę, jeśli chcesz)
+        pulseCircle.textContent = "";
+        // Przywracamy animację pulsowania (opcjonalnie)
+        pulseCircle.style.animation = "";
+        isLoading = false;
+        // Powiadamiamy rodzica, że audio zostało włączone (startStream)
+        window.parent.postMessage({ action: "startStream", stream: streamType }, "*");
+      }, 3000);
     });
 
     /**
-     * Przycisk STOP – faktycznie zatrzymuje sesję w bazie (wysyła "stopStream")
+     * Przycisk STOP – wycisza audio, wysyła komunikat stopStream i przywraca overlay (pulsujące koło)
      */
     document.getElementById("stopBtn").addEventListener("click", function() {
-      console.log("STOP => end session w DB");
+      console.log("STOP => wycisz audio i zakończ sesję w DB");
+      videoEl.muted = true;
       window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
       doResetOverlay();
     });
 
     /**
-     * Funkcja przywracająca overlay (kółko), wyciszająca wideo
-     * – wideo dalej się odtwarza (muted = true), ale w DB sesja jest zakończona
+     * Funkcja przywracająca overlay (pulsujące koło)
      */
     function doResetOverlay() {
-      videoEl.muted = true;
       overlay.style.display = "block";
       overlay.style.opacity = "1";
+      // Przywracamy zawartość koła na "Start"
+      pulseCircle.textContent = "Start";
+      // Upewniamy się, że animacja pulsowania jest aktywna
+      pulseCircle.style.animation = "";
       if (timerID) clearTimeout(timerID);
     }
 
@@ -240,7 +264,7 @@
     });
 
     /**
-     * Wyjście ze strony -> best effort stopStream
+     * Przed opuszczeniem strony – wysyłamy do rodzica komunikat stopStream
      */
     window.addEventListener("beforeunload", function() {
       window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");

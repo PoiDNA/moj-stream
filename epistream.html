@@ -6,17 +6,17 @@
   <title>EpiStream Player</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
-    /* WYZEROWANIE */
+    /* Wyzerowanie marginesów */
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
-      background: #000; /* Główne tło czarne */
+      background: #000;
     }
-    /* KONTENER WIDEO */
+    /* Kontener wideo */
     #videoContainer {
-      position: relative;
+      position: relative; 
       width: 100%;
       height: 100%;
       background: #000;
@@ -28,25 +28,26 @@
       display: block;
       background: #000;
     }
-    /* OVERLAY – kółko pulsujące do startu audio */
+
+    /* Overlay – nakładka z kółkiem do startu audio */
     #overlay {
       position: absolute;
-      top: 0; left: 0;
+      top: 0; left: 0; 
       width: 100%; height: 100%;
-      background: #000;
-      z-index: 10;
+      background: #000; 
+      z-index: 10; 
       opacity: 1;
       transition: opacity 0.5s ease;
     }
     #pulseCircle {
-      position: absolute;
+      position: absolute; 
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       width: 120px; height: 120px;
       border: 4px solid rgba(255,255,255,0.9);
       border-radius: 50%;
       animation: pulse 3s infinite;
-      z-index: 12;
+      z-index: 12; 
       cursor: pointer;
     }
     @keyframes pulse {
@@ -54,41 +55,6 @@
       50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
     }
-
-    /* Pasek przycisków z białym tłem, by zawsze widać było ikony */
-    #iconButtons {
-      position: absolute;
-      bottom: 45px;         /* odstęp od dołu */
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      display: flex;
-      gap: 15px;            /* większa przerwa między przyciskami */
-      padding: 10px 14px;
-      background: #fff;     /* BIAŁE tło */
-      border-radius: 8px;
-    }
-    #iconButtons button {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      /* Nie dodajemy transition i hover, żeby nic nie znikało po starcie. */
-    }
-    /* Każda ikona jest CZARNA od razu */
-    #iconButtons button svg {
-      width: 28px;
-      height: 28px;
-      fill: #000; /* Czarne wypełnienie – widać je na białym tle */
-    }
-    /* Brak zmian koloru przy hover –  żeby była identyczna */
-    #iconButtons button:hover svg {
-      fill: #000; 
-    }
-
-    /* Prosty styl kółka glow dla R/Q – usunięty na hover, by nie kolidowało */
     #pulseCircle.glow-r::after,
     #pulseCircle.glow-q::after {
       content: "";
@@ -110,54 +76,85 @@
       50%  { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
     }
+
+    /* Pasek przycisków – odsunięty o 45px od dołu */
+    #iconButtons {
+      position: absolute; 
+      bottom: 45px;    /* <- zamiast 20px */
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999; 
+      display: flex; 
+      gap: 10px;
+      padding: 5px 10px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 8px;
+    }
+    #iconButtons button {
+      background: none; 
+      border: none; 
+      border-radius: 4px;
+      cursor: pointer; 
+      display: flex;
+      justify-content: center; 
+      align-items: center;
+      transition: background 0.3s, color 0.3s;
+      padding: 6px;
+    }
+
+    /* Tu ustawiamy jasnofioletowy kolor ikon w stanie normalnym */
+    #iconButtons button svg {
+      width: 24px; 
+      height: 24px; 
+      fill: #CE93D8; /* jasnofioletowy */
+      transition: fill 0.3s;
+    }
+    /* Po najechaniu – tło robi się jasnoszare, a ikony czarne (możesz zmienić) */
+    #iconButtons button:hover {
+      background: #d3d3d3;
+    }
+    #iconButtons button:hover svg {
+      fill: #000;
+    }
   </style>
 </head>
 <body>
   <div id="videoContainer">
     <video id="videoPlayer" muted playsinline webkit-playsinline loop></video>
 
-    <!-- Nakładka startowa (kółko) -->
     <div id="overlay">
       <div id="pulseCircle"></div>
     </div>
 
-    <!-- Pasek przycisków z białym tłem i czarnymi ikonami -->
     <div id="iconButtons">
-      <!-- Ikona STOP (kwadrat) -->
-      <button id="stopBtn" title="Stop">
+      <button id="stopBtn" title="Zamknij">
         <svg viewBox="0 0 24 24">
-          <path fill="currentColor" d="M6 6h12v12H6z"/>
+          <rect x="6" y="6" width="12" height="12" rx="2" ry="2" fill="currentColor"/>
         </svg>
       </button>
-      <!-- Ikona FULLSCREEN -->
       <button id="fullscreenBtn" title="Fullscreen">
         <svg viewBox="0 0 24 24">
-          <path fill="currentColor"
-                d="M7 14h2v3h3v2H7v-5zm10-4h-2V7h-3V5h5v5zM7 7h3V5H5v5h2V7zm8 10h3v-3h2v5h-5v-2z"/>
+          <path fill="currentColor" d="M4 4h6V2H2v8h2V4zm16 0v6h2V2h-8v2h6zm0 16h-6v2h8v-8h-2v6zm-16 0v-6H2v8h8v-2H4z"/>
         </svg>
       </button>
     </div>
   </div>
-
+  
   <script>
-    // Pobranie parametru "stream" (?stream=R lub ?stream=Q)
     const urlParams = new URLSearchParams(window.location.search);
     const streamType = urlParams.get('stream') || 'none';
 
-    // Linki do Cloudflare Stream
     const STREAM_R_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/da3c684414e10f62fef441b86292fa73/manifest/video.m3u8";
     const STREAM_Q_URL = "https://customer-w3f597i9r7rtqrhw.cloudflarestream.com/5861c341f78cb4c304bc71c5847ec0b7/manifest/video.m3u8";
-
-    // Określenie strumienia
-    const chosenUrl = (streamType === "R")
-      ? STREAM_R_URL
+    const chosenUrl = (streamType === "R") 
+      ? STREAM_R_URL 
       : (streamType === "Q" ? STREAM_Q_URL : null);
 
     const videoEl = document.getElementById("videoPlayer");
     const pulseCircle = document.getElementById("pulseCircle");
     let timerID = null;
 
-    // Efekt glow, jeśli R lub Q
+    // Efekt glow dla R i Q
     if (streamType === "R") {
       pulseCircle.classList.add("glow-r");
     } else if (streamType === "Q") {
@@ -170,7 +167,7 @@
         const hls = new Hls();
         hls.loadSource(chosenUrl);
         hls.attachMedia(videoEl);
-        hls.on(Hls.Events.MANIFEST_PARSED, function() {
+        hls.on(Hls.Events.MANIFEST_PARSED, function(){
           videoEl.play().catch(err => console.error("Błąd odtwarzania:", err));
         });
       } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
@@ -182,13 +179,11 @@
       }
     }
 
-    // Zakończenie streamu
     function resetStream() {
       videoEl.pause();
       window.location.href = window.location.pathname + "?stream=none";
     }
 
-    // Klik w pulsujące koło -> unmute, schowaj overlay, start timera
     pulseCircle.addEventListener("click", function() {
       videoEl.muted = false;
       const overlay = document.getElementById("overlay");
@@ -201,11 +196,9 @@
         resetStream();
       }, 120000);
 
-      // Powiadom Wix: startStream
       window.parent.postMessage({ action: "startStream", stream: streamType }, "*");
     });
 
-    // Pełny ekran
     const fullscreenBtn = document.getElementById("fullscreenBtn");
     fullscreenBtn.addEventListener("click", function() {
       const container = document.getElementById("videoContainer");
@@ -216,7 +209,6 @@
       }
     });
 
-    // Stop
     const stopBtn = document.getElementById("stopBtn");
     stopBtn.addEventListener("click", function() {
       if (timerID) clearTimeout(timerID);
@@ -224,7 +216,6 @@
       resetStream();
     });
 
-    // Zdarzenie wychodzenia ze strony – best effort
     window.addEventListener("beforeunload", function() {
       window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
     });

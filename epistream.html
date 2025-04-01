@@ -8,21 +8,21 @@
   <style>
     /* Reset */
     html, body {
-      margin: 0; 
+      margin: 0;
       padding: 0;
-      width: 100%; 
+      width: 100%;
       height: 100%;
       background: #000;
     }
     /* Kontener wideo */
     #videoContainer {
       position: relative;
-      width: 100%; 
+      width: 100%;
       height: 100%;
       background: #000;
     }
     video {
-      width: 100%; 
+      width: 100%;
       height: 100%;
       object-fit: contain;
       display: block;
@@ -31,8 +31,10 @@
     /* Overlay – pełne okno, początkowo widoczne */
     #overlay {
       position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       background: #000;
       z-index: 10;
       opacity: 1;
@@ -42,9 +44,11 @@
     /* Pulsujące koło – element startowy z ikoną linii papilarnych */
     #pulseCircle {
       position: absolute;
-      top: 50%; left: 50%;
+      top: 50%;
+      left: 50%;
       transform: translate(-50%, -50%);
-      width: 120px; height: 120px;
+      width: 120px;
+      height: 120px;
       border: 4px solid rgba(255,255,255,0.9);
       border-radius: 50%;
       animation: pulse 3s infinite;
@@ -65,9 +69,11 @@
     #pulseCircle.glow-q::after {
       content: "";
       position: absolute;
-      top: 50%; left: 50%;
+      top: 50%;
+      left: 50%;
       transform: translate(-50%, -50%);
-      width: 80%; height: 80%;
+      width: 80%;
+      height: 80%;
       border-radius: 50%;
       animation: pulseGlow 2s infinite;
     }
@@ -95,7 +101,7 @@
       background: #fff;
       border-radius: 8px;
     }
-    #iconButtons button, 
+    #iconButtons button,
     #iconButtons button svg {
       -webkit-appearance: none;
       appearance: none;
@@ -109,7 +115,8 @@
       justify-content: center;
     }
     #iconButtons button svg {
-      width: 28px; height: 28px;
+      width: 28px;
+      height: 28px;
       fill: #000 !important;
     }
   </style>
@@ -201,6 +208,7 @@
       if (isLoading) return;
       isLoading = true;
       
+      // Rozpoczynamy animację ładowania – zmieniamy zawartość koła
       pulseCircle.innerHTML = '<span style="color:#fff; font-size:14px;">Ładowanie...</span>';
       pulseCircle.style.animation = "none";
       
@@ -223,7 +231,7 @@
      * Przycisk STOP:
      * - Wyłącza audio (muted = true),
      * - Wysyła komunikat "stopStream" do rodzica, który aktualizuje rekord (uzupełnia endTime i duration),
-     * - Przywraca overlay (pulsujące koło) – rekord z startTime pozostaje.
+     * - Przywraca overlay (pulsujące koło) – interfejs wraca do stanu początkowego.
      */
     document.getElementById("stopBtn").addEventListener("click", function() {
       console.log("STOP => wycisz audio i zakończ sesję w DB");
@@ -233,7 +241,7 @@
     });
 
     /**
-     * Funkcja przywracająca overlay (pulsujące koło) – resetuje stan do "Start"
+     * Funkcja przywracająca overlay (pulsujące koło) – resetuje interfejs do stanu początkowego
      */
     function doResetOverlay() {
       overlay.style.display = "block";
@@ -243,9 +251,7 @@
         </svg>`;
       pulseCircle.style.animation = "";
       if (timerID) clearTimeout(timerID);
-      // Zatrzymujemy odtwarzanie wideo
       videoEl.pause();
-      // Opcjonalnie resetujemy currentTime, aby odtwarzanie zaczynało się od początku
       videoEl.currentTime = 0;
     }
 
@@ -262,23 +268,27 @@
     });
 
     /**
-     * Obsługa opuszczenia strony:
-     * Wysyłamy komunikat "stopStream" do rodzica i zatrzymujemy odtwarzanie,
-     * aby przy zamknięciu lub przejściu na inną stronę rekord został uzupełniony,
-     * a stream został zatrzymany.
+     * Funkcja zatrzymująca stream i resetująca interfejs:
+     * Wysyła komunikat "stopStream" do rodzica, zatrzymuje odtwarzanie i resetuje UI.
      */
-    function stopStreamAndPause() {
+    function stopStreamAndResetUI() {
       window.parent.postMessage({ action: "stopStream", stream: streamType }, "*");
       videoEl.pause();
       videoEl.currentTime = 0;
+      doResetOverlay();
     }
-    window.addEventListener("beforeunload", stopStreamAndPause);
+
+    /**
+     * Obsługa opuszczenia strony – gdy użytkownik przechodzi na inną stronę lub zamyka kartę.
+     * Zatrzymujemy stream i resetujemy interfejs.
+     */
+    window.addEventListener("beforeunload", stopStreamAndResetUI);
     document.addEventListener("visibilitychange", function() {
       if (document.visibilityState === "hidden") {
-        stopStreamAndPause();
+        stopStreamAndResetUI();
       }
     });
-    document.addEventListener("pagehide", stopStreamAndPause);
+    document.addEventListener("pagehide", stopStreamAndResetUI);
   </script>
 </body>
 </html>

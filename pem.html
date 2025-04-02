@@ -2,24 +2,64 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>Kontroler Tone.js</title>
+  <title>Symulator A1</title>
   <!-- Tone.js z CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
   <!-- dat.GUI z CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h1 { margin-bottom: 0; }
-    p { margin-top: 5px; }
-    button { margin-right: 10px; margin-bottom: 10px; }
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 0; 
+      padding: 0; 
+    }
+    /* Lewa kolumna: panel kontrolny */
+    #leftContainer {
+      width: 50%;
+      float: left;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    /* Prawa kolumna: wizualizacja analizatora */
+    #rightContainer {
+      width: 50%;
+      float: left;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    canvas {
+      background: #222;
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    /* Powiększenie czcionki w panelu dat.GUI */
+    .dg.main {
+      font-size: 150%;
+    }
+    h1 {
+      font-size: 2em;
+    }
+    button {
+      font-size: 1.5em;
+      padding: 10px 20px;
+      margin: 10px 5px;
+    }
   </style>
 </head>
 <body>
-  <h1>Kontroler Tone.js</h1>
-  <p>Użyj poniższych przycisków i suwaków, aby sterować generowaniem dźwięków.</p>
-  <button id="startButton">Uruchom Audio</button>
-  <button id="triggerNote">Zagraj dźwięk</button>
-  <button id="toggleNoise">Włącz/Wyłącz Szum</button>
+  <!-- Lewa kolumna z tytułem, przyciskami i panelem kontrolnym -->
+  <div id="leftContainer">
+    <h1>Symulator A1</h1>
+    <p>Użyj poniższych przycisków oraz panelu kontrolnego do sterowania dźwiękiem.</p>
+    <button id="startButton">Uruchom Audio</button>
+    <button id="triggerNote">Zagraj dźwięk</button>
+    <button id="toggleNoise">Włącz/Wyłącz Szum</button>
+  </div>
+  <!-- Prawa kolumna z analizatorem -->
+  <div id="rightContainer">
+    <canvas id="analyserCanvas" width="600" height="400"></canvas>
+  </div>
   
   <script>
     // Aktywacja kontekstu audio na żądanie użytkownika
@@ -28,7 +68,14 @@
       console.log("Audio Context uruchomiony");
     });
 
-    // --- Syntezator i łańcuch efektów ---
+    // Utworzenie finalnego miksu – do niego kierowane będą oba sygnały
+    const finalMix = new Tone.Gain(1);
+    // Utwórz analizator wyświetlający waveform
+    const analyser = new Tone.Analyser("waveform", 1024);
+    // Łańcuch: finalMix -> analyser -> wyjście
+    finalMix.chain(analyser, Tone.Destination);
+
+    // --- Syntezator i jego efekty ---
     const synth = new Tone.Synth({
       oscillator: {
         type: "sine",
@@ -54,7 +101,6 @@
       rolloff: -12
     });
 
-    // Efekty:
     const delay = new Tone.FeedbackDelay({
       delayTime: 0.25,
       feedback: 0.3,
@@ -81,34 +127,21 @@
     const volume = new Tone.Volume(-12);
     const panner = new Tone.Panner(0);
 
-    // LFO do modulacji (np. częstotliwości filtra)
-    const lfo = new Tone.LFO({
-      frequency: 0.5,
-      min: 400,
-      max: 1600,
-      phase: 0,
-      type: "sine"
-    }).start();
-    lfo.connect(filter.frequency);
+    // Łańcuch efektów syntezatora: wysyłamy do finalMix
+    synth.chain(filter, delay, reverb, chorus, distortion, volume, panner, finalMix);
 
-    // Łańcuch: syntezator -> filtr -> delay -> reverb -> chorus -> distortion -> volume -> panner -> wyjście
-    synth.chain(filter, delay, reverb, chorus, distortion, volume, panner, Tone.Destination);
-
-    // --- Szumy i dźwięki binauralne ---
-    // Tworzymy generator szumu, który domyślnie generuje biały szum
+    // --- Szumy oraz dźwięki binauralne ---
     const noise = new Tone.Noise("white").start();
-    // Oddzielny kontroler głośności dla szumu
     const noiseVolume = new Tone.Volume(-12);
-    // Panner 3D do symulacji efektu binauralnego
     const binauralPanner = new Tone.Panner3D({
       positionX: 0,
       positionY: 0,
       positionZ: -1
-    }).toDestination();
-    // Łańcuch: szum -> noiseVolume -> binauralPanner
-    noise.chain(noiseVolume, binauralPanner);
+    });
+    // Łańcuch szumu: kierowany do finalMix
+    noise.chain(noiseVolume, binauralPanner, finalMix);
 
-    // Przycisk do włączania/wyłączania szumu
+    // Przycisk do przełączania szumu
     let noiseActive = true;
     document.getElementById("toggleNoise").addEventListener("click", function(){
       if (noiseActive) {
@@ -123,9 +156,11 @@
     });
 
     // --- Panel kontrolny dat.GUI ---
-    const gui = new dat.GUI();
+    const gui = new dat.GUI({ width: 400 });
+    // Przenieś panel do lewej kolumny
+    document.getElementById("leftContainer").appendChild(gui.domElement);
 
-    // 1. Oscylatory
+    // 1. Oscylator
     const oscFolder = gui.addFolder("Oscylator");
     const oscSettings = {
       type: "sine",
@@ -155,8 +190,8 @@
     });
     oscFolder.open();
 
-    // 2. Obwiednie (Envelope)
-    const envFolder = gui.addFolder("Obwiednia (Envelope)");
+    // 2. Obwiednia (Envelope)
+    const envFolder = gui.addFolder("Obwiednia");
     const envSettings = {
       attack: 0.1,
       decay: 0.2,
@@ -189,7 +224,7 @@
     });
     envFolder.open();
 
-    // 3. Filtry
+    // 3. Filtr
     const filterFolder = gui.addFolder("Filtr");
     const filterSettings = {
       type: "lowpass",
@@ -217,6 +252,7 @@
 
     // 4. Efekty
     const effectsFolder = gui.addFolder("Efekty");
+    // Delay
     const delayFolder = effectsFolder.addFolder("Delay");
     const delaySettings = {
       delayTime: 0.25,
@@ -234,6 +270,7 @@
     });
     delayFolder.open();
 
+    // Reverb
     const reverbFolder = effectsFolder.addFolder("Reverb");
     const reverbSettings = {
       decay: 2,
@@ -252,6 +289,7 @@
     });
     reverbFolder.open();
 
+    // Chorus/Flanger/Phaser
     const chorusFolder = effectsFolder.addFolder("Chorus/Flanger/Phaser");
     const chorusSettings = {
       frequency: 1.5,
@@ -277,6 +315,7 @@
     });
     chorusFolder.open();
 
+    // Distortion
     const distortionFolder = effectsFolder.addFolder("Distortion");
     const distortionSettings = {
       distortion: 0.4,
@@ -294,7 +333,7 @@
     });
     distortionFolder.open();
 
-    // 5. Kontrola Głośności i Panoramowanie
+    // 5. Głośność i Panoramowanie
     const outputFolder = gui.addFolder("Głośność i Panoramowanie");
     const outputSettings = {
       volume: -12,
@@ -308,8 +347,8 @@
     });
     outputFolder.open();
 
-    // 6. Modulatory i LFO (Low-Frequency Oscillator)
-    const lfoFolder = gui.addFolder("LFO (Modulatory)");
+    // 6. LFO
+    const lfoFolder = gui.addFolder("LFO");
     const lfoSettings = {
       frequency: 0.5,
       min: 400,
@@ -334,11 +373,10 @@
     });
     lfoFolder.open();
 
-    // 7. Parametry Automatyzacji i Sterowania
+    // 7. Automatyzacja
     const automationFolder = gui.addFolder("Automatyzacja");
     const automationSettings = {
       rampAttack: function(){
-        // Przykład: liniowy wzrost częstotliwości oscylatora od obecnej wartości do 800 Hz w ciągu 2 sekund.
         synth.oscillator.frequency.linearRampTo(800, 2);
       }
     };
@@ -363,7 +401,7 @@
     });
     timeFolder.open();
 
-    // --- Nowe GUI dla szumów i dźwięków binauralnych ---
+    // --- GUI dla szumów i dźwięków binauralnych ---
     const noiseFolder = gui.addFolder("Szumy");
     const noiseSettings = {
       type: "white",
@@ -398,6 +436,44 @@
     document.getElementById("triggerNote").addEventListener("click", function(){
       synth.triggerAttackRelease("C4", "8n", Tone.now(), 0.7);
     });
+
+    // --- LFO – przykład połączenia z częstotliwością filtra ---
+    const lfo = new Tone.LFO({
+      frequency: 0.5,
+      min: 400,
+      max: 1600,
+      phase: 0,
+      type: "sine"
+    }).start();
+    lfo.connect(filter.frequency);
+
+    // --- Animacja analizatora – rysowanie waveform na canvas ---
+    const canvas = document.getElementById("analyserCanvas");
+    const canvasCtx = canvas.getContext("2d");
+    function draw() {
+      requestAnimationFrame(draw);
+      const dataArray = analyser.getValue();
+      canvasCtx.fillStyle = "#222";
+      canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+      canvasCtx.lineWidth = 2;
+      canvasCtx.strokeStyle = "#0f0";
+      canvasCtx.beginPath();
+      const sliceWidth = canvas.width / dataArray.length;
+      let x = 0;
+      for (let i = 0; i < dataArray.length; i++) {
+        const v = (dataArray[i] + 1) / 2; // normalizacja z zakresu -1 do 1 na 0-1
+        const y = v * canvas.height;
+        if (i === 0) {
+          canvasCtx.moveTo(x, y);
+        } else {
+          canvasCtx.lineTo(x, y);
+        }
+        x += sliceWidth;
+      }
+      canvasCtx.lineTo(canvas.width, canvas.height / 2);
+      canvasCtx.stroke();
+    }
+    draw();
   </script>
 </body>
 </html>

@@ -28,7 +28,7 @@
       padding: 10px 20px;
       margin: 10px;
     }
-    /* Kontenery paneli kontrolnych – dwa panele ustawione pionowo */
+    /* Kontenery paneli kontrolnych – ustawione pionowo */
     #controlPanelContainer, #controlPanelContainer2 {
       width: 100%;
       padding: 10px;
@@ -68,18 +68,17 @@
     <button id="startButton">Uruchom Audio</button>
     <button id="triggerNote">Zagraj Osc1</button>
     <button id="triggerNote2">Zagraj Osc2</button>
-    <button id="toggleNoise">Włącz/Wyłącz Szum</button>
     <button id="binauralButton">Uruchom Binaural Beats</button>
   </div>
   
-  <!-- Panel kontrolny dla pierwszego oscylatora -->
+  <!-- Panel kontrolny dla synth1 -->
   <div id="controlPanelContainer">
-    <!-- Tutaj zostanie dołączony pierwszy panel dat.GUI -->
+    <!-- Panel dat.GUI dla synth1 zostanie dołączony tutaj -->
   </div>
   
-  <!-- Panel kontrolny dla drugiego oscylatora -->
+  <!-- Panel kontrolny dla synth2 -->
   <div id="controlPanelContainer2">
-    <!-- Tutaj zostanie dołączony drugi panel dat.GUI -->
+    <!-- Panel dat.GUI dla synth2 zostanie dołączony tutaj -->
   </div>
   
   <!-- Dolny pasek: tytuł i wykres analizatora -->
@@ -89,7 +88,7 @@
   </div>
   
   <script>
-    // Uruchomienie AudioContext
+    // Uruchomienie AudioContext po kliknięciu przycisku
     document.getElementById("startButton").addEventListener("click", async function(){
       await Tone.start();
       console.log("Audio Context uruchomiony");
@@ -99,13 +98,13 @@
     const finalMix = new Tone.Gain(1);
     finalMix.channelCount = 2;
     finalMix.channelCountMode = "explicit";
-    // Analizator – wizualizacja sygnału
+    // Utwórz analizator wyświetlający waveform
     const analyser = new Tone.Analyser("waveform", 1024);
     finalMix.chain(analyser, Tone.Destination);
 
-    // ===========================
+    // ================================
     // Pierwszy oscylator (synth1) i jego efekty
-    // ===========================
+    // ================================
     const synth = new Tone.Synth({
       oscillator: { type: "sine", detune: 0, phase: 0, partials: [] },
       envelope: { attack: 0.1, decay: 0.2, sustain: 0.5, release: 1, attackCurve: "linear", decayCurve: "linear", releaseCurve: "linear" }
@@ -120,13 +119,14 @@
     // Łańcuch: synth -> filter -> delay -> reverb -> chorus -> distortion -> volume -> panner -> finalMix
     synth.chain(filter, delay, reverb, chorus, distortion, volume, panner, finalMix);
 
-    // ===========================
-    // Drugi oscylator (synth2) i jego efekty – identyczna ścieżka, niezależna kontrola
-    // ===========================
+    // ================================
+    // Drugi oscylator (synth2) i jego efekty – niezależny
+    // ================================
     const synth2 = new Tone.Synth({
       oscillator: { type: "sine", detune: 0, phase: 0, partials: [] },
       envelope: { attack: 0.1, decay: 0.2, sustain: 0.5, release: 1, attackCurve: "linear", decayCurve: "linear", releaseCurve: "linear" }
     });
+    // Dla synth2 tworzymy osobne efekty – analogicznie:
     const filter2 = new Tone.Filter({ type: "lowpass", frequency: 1000, Q: 1, rolloff: -12 });
     const delay2 = new Tone.FeedbackDelay({ delayTime: 0.25, feedback: 0.3, wet: 0.5 });
     const reverb2 = new Tone.Reverb({ decay: 2, preDelay: 0.01, wet: 0.5 });
@@ -136,26 +136,17 @@
     const panner2 = new Tone.Panner(0);
     synth2.chain(filter2, delay2, reverb2, chorus2, distortion2, volume2, panner2, finalMix);
 
-    // ===========================
+    // ================================
     // Inne źródła dźwięku
-    // ===========================
-    // Szum
-    const noise = new Tone.Noise("white").start();
-    const noiseVolume = new Tone.Volume(-12);
-    const binauralPanner = new Tone.Panner3D({ positionX: 0, positionY: 0, positionZ: -1 });
-    noise.chain(noiseVolume, binauralPanner, finalMix);
-    let noiseActive = true;
-    document.getElementById("toggleNoise").addEventListener("click", function(){
-      if (noiseActive) {
-        noise.stop();
-        noiseActive = false;
-        console.log("Szum wyłączony");
-      } else {
-        noise.start();
-        noiseActive = true;
-        console.log("Szum włączony");
-      }
-    });
+    // ================================
+    // Dla zaawansowanej edycji szumu tworzymy dwa oddzielne obiekty:
+    const noise1 = new Tone.Noise("white");
+    const noiseVolume1 = new Tone.Volume(-12);
+    noise1.chain(noiseVolume1, finalMix);
+    const noise2 = new Tone.Noise("white");
+    const noiseVolume2 = new Tone.Volume(-12);
+    noise2.chain(noiseVolume2, finalMix);
+
     // Tone.Player – odtwarzacz audio
     const player = new Tone.Player({ url: "https://tonejs.github.io/audio/berklee/groove.mp3", autostart: false }).connect(finalMix);
     // Tone.Sampler – sampler instrumentu
@@ -163,7 +154,7 @@
       urls: { "C4": "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3" },
       baseUrl: "https://tonejs.github.io/audio/salamander/"
     }).connect(finalMix);
-    // Alternatywne syntezatory (PulseOscillator, FatOscillator itd.)
+    // Alternatywne syntezatory – rozszerzona lista (w tym PulseOscillator, FatOscillator)
     let altSynth = null;
     const altSynthOptions = {
       type: "MembraneSynth",
@@ -222,7 +213,7 @@
       }
     });
 
-    // Dodaj przyciski do wyzwalania synth i synth2
+    // Przycisk do wyzwalania synth1 i synth2
     document.getElementById("triggerNote").addEventListener("click", function(){
       synth.triggerAttackRelease("C4", "8n");
     });
@@ -230,13 +221,13 @@
       synth2.triggerAttackRelease("C4", "8n");
     });
 
-    // ===========================
-    // Panel kontrolny dla synth (pierwszy)
-    // ===========================
+    // ================================
+    // Panel kontrolny dla synth1 (gui1)
+    // ================================
     const gui1 = new dat.GUI({ width: 1000 });
     document.getElementById("controlPanelContainer").appendChild(gui1.domElement);
 
-    // Folder Oscylator
+    // Folder Oscylator (Synth1)
     const oscFolder1 = gui1.addFolder("Oscylator (Synth1)");
     const oscSettings1 = { type: "sine", detune: 0, phase: 0, partials: 0 };
     oscFolder1.add(oscSettings1, "type", ["sine", "square", "triangle", "sawtooth"]).onChange(val => {
@@ -249,7 +240,7 @@
     });
     oscFolder1.open();
 
-    // Folder Obwiednia
+    // Folder Obwiednia (Synth1)
     const envFolder1 = gui1.addFolder("Obwiednia (Synth1)");
     const envSettings1 = { attack: 0.1, decay: 0.2, sustain: 0.5, release: 1, attackCurve: "linear", decayCurve: "linear", releaseCurve: "linear" };
     envFolder1.add(envSettings1, "attack", 0, 2).onChange(val => { synth.envelope.attack = val; });
@@ -261,7 +252,7 @@
     envFolder1.add(envSettings1, "releaseCurve", ["linear", "exponential"]).onChange(val => { synth.envelope.releaseCurve = val; });
     envFolder1.open();
 
-    // Folder Filtr
+    // Folder Filtr (Synth1)
     const filterFolder1 = gui1.addFolder("Filtr (Synth1)");
     const filterSettings1 = { type: "lowpass", frequency: 1000, Q: 1, gain: 0, rolloff: -12 };
     filterFolder1.add(filterSettings1, "type", ["lowpass", "highpass", "bandpass", "notch"]).onChange(val => { filter.type = val; });
@@ -271,12 +262,27 @@
     filterFolder1.add(filterSettings1, "rolloff", [-12, -24]).onChange(val => { filter.rolloff = val; });
     filterFolder1.open();
 
-    // Możesz dodać kolejne foldery (Efekty, LFO, Automatyzacja, Globalne Parametry) analogicznie dla synth1
-    // (Kod nie został powielony w całości dla oszczędności miejsca)
+    // Folder zaawansowanej edycji szumu dla synth1
+    const noise1Settings = {
+      type: "white",
+      volume: -12,
+      active: false
+    };
+    const noiseFolder1 = gui1.addFolder("Szum zaawansowany (Noise 1)");
+    noiseFolder1.add(noise1Settings, "type", ["white", "pink", "brown"]).onChange(val => {
+      noise1.type = val;
+    });
+    noiseFolder1.add(noise1Settings, "volume", -60, 0).onChange(val => {
+      noiseVolume1.volume.value = val;
+    });
+    noiseFolder1.add(noise1Settings, "active").name("Włącz Szum").onChange(val => {
+      if (val) { noise1.start(); } else { noise1.stop(); }
+    });
+    noiseFolder1.open();
 
-    // ===========================
-    // Panel kontrolny dla synth2 (drugi oscillator)
-    // ===========================
+    // ================================
+    // Panel kontrolny dla synth2 (gui2)
+    // ================================
     const gui2 = new dat.GUI({ width: 1000 });
     document.getElementById("controlPanelContainer2").appendChild(gui2.domElement);
 
@@ -308,33 +314,41 @@
     // Folder Filtr (Synth2)
     const filterFolder2 = gui2.addFolder("Filtr (Synth2)");
     const filterSettings2 = { type: "lowpass", frequency: 1000, Q: 1, gain: 0, rolloff: -12 };
+    // Dla synth2 filtr tworzymy osobny obiekt (filter2) wcześniej utworzony
     filterFolder2.add(filterSettings2, "type", ["lowpass", "highpass", "bandpass", "notch"]).onChange(val => { filter2.type = val; });
-    // Utwórz obiekt filter2 analogicznie
-    const filter2 = new Tone.Filter({ type: "lowpass", frequency: 1000, Q: 1, rolloff: -12 });
-    synth2.chain(filter2, delay2, reverb2, chorus2, distortion2, volume2, panner2, finalMix);
     filterFolder2.add(filterSettings2, "frequency", 20, 20000).onChange(val => { filter2.frequency.value = val; });
     filterFolder2.add(filterSettings2, "Q", 0.1, 20).onChange(val => { filter2.Q.value = val; });
     filterFolder2.add(filterSettings2, "gain", -40, 40).onChange(val => { filter2.gain = val; });
     filterFolder2.add(filterSettings2, "rolloff", [-12, -24]).onChange(val => { filter2.rolloff = val; });
     filterFolder2.open();
 
-    // Możesz dodać kolejne foldery (Efekty, LFO, Automatyzacja, Globalne Parametry) dla synth2 analogicznie
+    // Folder zaawansowanej edycji szumu dla synth2
+    const noise2Settings = {
+      type: "white",
+      volume: -12,
+      active: false
+    };
+    const noiseFolder2 = gui2.addFolder("Szum zaawansowany (Noise 2)");
+    noiseFolder2.add(noise2Settings, "type", ["white", "pink", "brown"]).onChange(val => {
+      noise2.type = val;
+    });
+    noiseFolder2.add(noise2Settings, "volume", -60, 0).onChange(val => {
+      noiseVolume2.volume.value = val;
+    });
+    noiseFolder2.add(noise2Settings, "active").name("Włącz Szum").onChange(val => {
+      if (val) { noise2.start(); } else { noise2.stop(); }
+    });
+    noiseFolder2.open();
 
-    // ===========================
-    // LFO – przykład połączenia z częstotliwością filtra synth1 (przykładowo)
-    // ===========================
-    const lfo = new Tone.LFO({
-      frequency: 0.5,
-      min: 400,
-      max: 1600,
-      phase: 0,
-      type: "sine"
-    }).start();
+    // ================================
+    // LFO – przykład połączenia z częstotliwością filtra synth1
+    // ================================
+    const lfo = new Tone.LFO({ frequency: 0.5, min: 400, max: 1600, phase: 0, type: "sine" }).start();
     lfo.connect(filter.frequency);
 
-    // ===========================
+    // ================================
     // Animacja analizatora – rysowanie waveform na canvas
-    // ===========================
+    // ================================
     const canvas = document.getElementById("analyserCanvas");
     const canvasCtx = canvas.getContext("2d");
     function draw() {

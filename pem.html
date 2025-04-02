@@ -8,57 +8,76 @@
   <!-- dat.GUI z CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
   <style>
-    body { 
-      font-family: Arial, sans-serif; 
-      margin: 0; 
-      padding: 0; 
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
     }
-    /* Lewa kolumna: panel kontrolny */
-    #leftContainer {
-      width: 50%;
-      float: left;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-    /* Prawa kolumna: wizualizacja analizatora */
-    #rightContainer {
-      width: 50%;
-      float: left;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-    canvas {
-      background: #222;
-      display: block;
+    /* Przyciski na górze */
+    #topContainer {
       width: 100%;
-      height: 100%;
+      padding: 10px;
+      text-align: center;
+      background: #f0f0f0;
+    }
+    #topContainer button {
+      font-size: 1.5em;
+      padding: 10px 20px;
+      margin: 10px;
+    }
+    /* Panel kontrolny – cała szerokość, wyrównany do środka */
+    #controlPanelContainer {
+      width: 100%;
+      padding: 10px;
+      background: #e8e8e8;
+      box-sizing: border-box;
+    }
+    /* Nazwa strony i wykres na dole */
+    #bottomContainer {
+      width: 100%;
+      padding: 20px;
+      background: #ddd;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    #bottomContainer h1 {
+      font-size: 2.5em;
+      margin: 0 0 20px 0;
+    }
+    #analyserCanvas {
+      background: #222;
+      width: 100%;
+      max-width: 800px;
+      height: 300px;
+      display: block;
+      margin: 0 auto;
     }
     /* Powiększenie czcionki w panelu dat.GUI */
     .dg.main {
       font-size: 150%;
     }
-    h1 {
-      font-size: 2em;
-    }
-    button {
-      font-size: 1.5em;
-      padding: 10px 20px;
-      margin: 10px 5px;
-    }
   </style>
 </head>
 <body>
-  <!-- Lewa kolumna z tytułem, przyciskami i panelem kontrolnym -->
-  <div id="leftContainer">
-    <h1>Symulator A1</h1>
-    <p>Użyj poniższych przycisków oraz panelu kontrolnego do sterowania dźwiękiem.</p>
+  <!-- Górny pasek przycisków -->
+  <div id="topContainer">
     <button id="startButton">Uruchom Audio</button>
     <button id="triggerNote">Zagraj dźwięk</button>
     <button id="toggleNoise">Włącz/Wyłącz Szum</button>
   </div>
-  <!-- Prawa kolumna z analizatorem -->
-  <div id="rightContainer">
-    <canvas id="analyserCanvas" width="600" height="400"></canvas>
+  
+  <!-- Panel kontrolny (dat.GUI) -->
+  <div id="controlPanelContainer">
+    <!-- Tutaj zostanie dołączony panel dat.GUI -->
+  </div>
+  
+  <!-- Dolny pasek: tytuł i wykres analizatora -->
+  <div id="bottomContainer">
+    <h1>Symulator A1</h1>
+    <canvas id="analyserCanvas" width="800" height="300"></canvas>
   </div>
   
   <script>
@@ -68,7 +87,7 @@
       console.log("Audio Context uruchomiony");
     });
 
-    // Utworzenie finalnego miksu – do niego kierowane będą wszystkie sygnały
+    // Utworzenie finalnego miksu – do niego kierowane będą wszystkie źródła dźwięku
     const finalMix = new Tone.Gain(1);
     // Utworzenie analizatora wyświetlającego waveform
     const analyser = new Tone.Analyser("waveform", 1024);
@@ -93,14 +112,12 @@
         releaseCurve: "linear"
       }
     });
-
     const filter = new Tone.Filter({
       type: "lowpass",
       frequency: 1000,
       Q: 1,
       rolloff: -12
     });
-
     const delay = new Tone.FeedbackDelay({
       delayTime: 0.25,
       feedback: 0.3,
@@ -123,10 +140,8 @@
       oversample: "4x",
       wet: 0.5
     });
-
     const volume = new Tone.Volume(-12);
     const panner = new Tone.Panner(0);
-
     // Łańcuch efektów syntezatora: synth -> filter -> delay -> reverb -> chorus -> distortion -> volume -> panner -> finalMix
     synth.chain(filter, delay, reverb, chorus, distortion, volume, panner, finalMix);
 
@@ -138,10 +153,7 @@
       positionY: 0,
       positionZ: -1
     });
-    // Łańcuch szumu: noise -> noiseVolume -> binauralPanner -> finalMix
     noise.chain(noiseVolume, binauralPanner, finalMix);
-
-    // Przycisk do przełączania szumu
     let noiseActive = true;
     document.getElementById("toggleNoise").addEventListener("click", function(){
       if (noiseActive) {
@@ -161,7 +173,6 @@
       url: "https://tonejs.github.io/audio/berklee/groove.mp3",
       autostart: false
     }).connect(finalMix);
-
     // Tone.Sampler – sampler instrumentu (przykładowe próbki)
     const sampler = new Tone.Sampler({
       urls: {
@@ -171,9 +182,8 @@
       },
       baseUrl: "https://tonejs.github.io/audio/salamander/"
     }).connect(finalMix);
-
-    // Alternatywne syntezatory – wybór spośród kilku typów
-    let altSynth = null;  // przechowuje aktualnie wybrany alternatywny syntezator
+    // Alternatywne syntezatory – możliwość wyboru z dodatkowych typów
+    let altSynth = null;
     const altSynthOptions = {
       type: "MembraneSynth",
       play: function(){
@@ -182,7 +192,6 @@
         }
       }
     };
-
     // Tone.UserMedia – przechwytywanie dźwięku z mikrofonu
     let mic, micActive = false;
     const userMediaOptions = {
@@ -205,10 +214,10 @@
       }
     };
 
-    // --- Panel kontrolny dat.GUI (tylko jeden obiekt!) ---
-    const gui = new dat.GUI({ width: 400 });
-    // Przenieś panel do lewej kolumny
-    document.getElementById("leftContainer").appendChild(gui.domElement);
+    // --- Panel kontrolny dat.GUI ---
+    // Tworzymy jeden obiekt gui i umieszczamy go w kontenerze #controlPanelContainer
+    const gui = new dat.GUI({ width: 1000 });
+    document.getElementById("controlPanelContainer").appendChild(gui.domElement);
 
     // 1. Oscylator
     const oscFolder = gui.addFolder("Oscylator");
@@ -302,7 +311,6 @@
 
     // 4. Efekty
     const effectsFolder = gui.addFolder("Efekty");
-    // Delay
     const delayFolder = effectsFolder.addFolder("Delay");
     const delaySettings = {
       delayTime: 0.25,
@@ -320,7 +328,6 @@
     });
     delayFolder.open();
 
-    // Reverb
     const reverbFolder = effectsFolder.addFolder("Reverb");
     const reverbSettings = {
       decay: 2,
@@ -339,7 +346,6 @@
     });
     reverbFolder.open();
 
-    // Chorus/Flanger/Phaser
     const chorusFolder = effectsFolder.addFolder("Chorus/Flanger/Phaser");
     const chorusSettings = {
       frequency: 1.5,
@@ -365,7 +371,6 @@
     });
     chorusFolder.open();
 
-    // Distortion
     const distortionFolder = effectsFolder.addFolder("Distortion");
     const distortionSettings = {
       distortion: 0.4,
@@ -470,15 +475,14 @@
     };
     sourcesFolder.add(samplerSettings, "play").name("Odtwórz Sampler");
 
-    // Alternatywne syntezatory – dodano opcje PulseOscillator i FatOscillator
+    // Alternatywne syntezatory – rozszerzona lista z PulseOscillator i FatOscillator
     const altSynthFolder = sourcesFolder.addFolder("Alternatywne Syntezatory");
-    // Opcje wyboru typu dostępne w liście
     altSynthFolder.add(altSynthOptions, "type", [
-      "MembraneSynth", 
-      "MetalSynth", 
-      "PluckSynth", 
-      "AMSynth", 
-      "FMSynth", 
+      "MembraneSynth",
+      "MetalSynth",
+      "PluckSynth",
+      "AMSynth",
+      "FMSynth",
       "MonoSynth",
       "PulseOscillator",
       "FatOscillator"
@@ -508,19 +512,19 @@
           break;
         case "PulseOscillator":
           altSynth = new Tone.PulseOscillator({
-             frequency: 220,
-             width: 0.4,
-             detune: 0
+            frequency: 220,
+            width: 0.4,
+            detune: 0
           }).connect(finalMix);
           altSynth.start();
           break;
         case "FatOscillator":
           altSynth = new Tone.FatOscillator({
-             frequency: 220,
-             detune: 0,
-             type: "sawtooth",
-             spread: 20,
-             count: 3
+            frequency: 220,
+            detune: 0,
+            type: "sawtooth",
+            spread: 20,
+            count: 3
           }).connect(finalMix);
           altSynth.start();
           break;

@@ -16,7 +16,7 @@
       flex-direction: column;
       min-height: 100vh;
     }
-    /* Przyciski na górze */
+    /* Górny pasek przycisków */
     #topContainer {
       width: 100%;
       padding: 10px;
@@ -28,14 +28,14 @@
       padding: 10px 20px;
       margin: 10px;
     }
-    /* Panel kontrolny – cała szerokość, wyrównany do środka */
+    /* Panel kontrolny – cała szerokość */
     #controlPanelContainer {
       width: 100%;
       padding: 10px;
       background: #e8e8e8;
       box-sizing: border-box;
     }
-    /* Nazwa strony i wykres na dole */
+    /* Dolny pasek: tytuł i wykres analizatora */
     #bottomContainer {
       width: 100%;
       padding: 20px;
@@ -67,11 +67,12 @@
     <button id="startButton">Uruchom Audio</button>
     <button id="triggerNote">Zagraj dźwięk</button>
     <button id="toggleNoise">Włącz/Wyłącz Szum</button>
+    <button id="binauralButton">Uruchom Binaural Beats</button>
   </div>
   
   <!-- Panel kontrolny (dat.GUI) -->
   <div id="controlPanelContainer">
-    <!-- Tutaj zostanie dołączony panel dat.GUI -->
+    <!-- Panel dat.GUI zostanie dołączony tutaj -->
   </div>
   
   <!-- Dolny pasek: tytuł i wykres analizatora -->
@@ -81,20 +82,21 @@
   </div>
   
   <script>
-    // Aktywacja kontekstu audio na żądanie użytkownika
+    // Aktywacja AudioContext na żądanie użytkownika
     document.getElementById("startButton").addEventListener("click", async function(){
       await Tone.start();
       console.log("Audio Context uruchomiony");
     });
 
-    // Utworzenie finalnego miksu – do niego kierowane będą wszystkie źródła dźwięku
+    // Utworzenie finalnego miksu – ustawiamy go na tryb stereo
     const finalMix = new Tone.Gain(1);
-    // Utworzenie analizatora wyświetlającego waveform
+    finalMix.channelCount = 2;
+    finalMix.channelCountMode = "explicit";
+    // Analizator fali – do wizualizacji
     const analyser = new Tone.Analyser("waveform", 1024);
-    // Łańcuch: finalMix -> analyser -> wyjście
     finalMix.chain(analyser, Tone.Destination);
 
-    // --- Syntezator i jego efekty ---
+    // --- Syntezator i efekty ---
     const synth = new Tone.Synth({
       oscillator: {
         type: "sine",
@@ -142,10 +144,10 @@
     });
     const volume = new Tone.Volume(-12);
     const panner = new Tone.Panner(0);
-    // Łańcuch efektów syntezatora: synth -> filter -> delay -> reverb -> chorus -> distortion -> volume -> panner -> finalMix
+    // Łańcuch efektów syntezatora
     synth.chain(filter, delay, reverb, chorus, distortion, volume, panner, finalMix);
 
-    // --- Szumy oraz dźwięki binauralne ---
+    // --- Szumy oraz dźwięki binauralne (inne źródło) ---
     const noise = new Tone.Noise("white").start();
     const noiseVolume = new Tone.Volume(-12);
     const binauralPanner = new Tone.Panner3D({
@@ -173,7 +175,7 @@
       url: "https://tonejs.github.io/audio/berklee/groove.mp3",
       autostart: false
     }).connect(finalMix);
-    // Tone.Sampler – sampler instrumentu (przykładowe próbki)
+    // Tone.Sampler – sampler instrumentu
     const sampler = new Tone.Sampler({
       urls: {
         "C4": "C4.mp3",
@@ -182,7 +184,7 @@
       },
       baseUrl: "https://tonejs.github.io/audio/salamander/"
     }).connect(finalMix);
-    // Alternatywne syntezatory – możliwość wyboru z dodatkowych typów
+    // Alternatywne syntezatory – rozszerzona lista (w tym PulseOscillator, FatOscillator)
     let altSynth = null;
     const altSynthOptions = {
       type: "MembraneSynth",
@@ -192,7 +194,7 @@
         }
       }
     };
-    // Tone.UserMedia – przechwytywanie dźwięku z mikrofonu
+    // Tone.UserMedia – mikrofon
     let mic, micActive = false;
     const userMediaOptions = {
       toggleMic: async function(){
@@ -214,8 +216,40 @@
       }
     };
 
+    // --- Binaural Beats ---
+    let binauralActive = false;
+    let leftOsc, rightOsc, leftPanner, rightPanner;
+    document.getElementById("binauralButton").addEventListener("click", function(){
+      if (!binauralActive) {
+        // Ustawienia bazowej częstotliwości i różnicy
+        const baseFreq = 440; // np. A4
+        const delta = 5;      // różnica 5 Hz
+        // Tworzenie oscylatorów binauralnych
+        leftOsc = new Tone.Oscillator(baseFreq, "sine");
+        rightOsc = new Tone.Oscillator(baseFreq + delta, "sine");
+        // Panner dla lewego i prawego kanału
+        leftPanner = new Tone.Panner(-1);
+        rightPanner = new Tone.Panner(1);
+        // Łączenie: oscylatory -> panner -> finalMix
+        leftOsc.connect(leftPanner);
+        rightOsc.connect(rightPanner);
+        leftPanner.connect(finalMix);
+        rightPanner.connect(finalMix);
+        // Uruchom oscylatory
+        leftOsc.start();
+        rightOsc.start();
+        binauralActive = true;
+        console.log("Binaural beats uruchomione: lewy " + baseFreq + " Hz, prawy " + (baseFreq + delta) + " Hz");
+      } else {
+        // Zatrzymaj oscylatory binauralne
+        leftOsc.stop();
+        rightOsc.stop();
+        binauralActive = false;
+        console.log("Binaural beats zatrzymane");
+      }
+    });
+
     // --- Panel kontrolny dat.GUI ---
-    // Tworzymy jeden obiekt gui i umieszczamy go w kontenerze #controlPanelContainer
     const gui = new dat.GUI({ width: 1000 });
     document.getElementById("controlPanelContainer").appendChild(gui.domElement);
 
@@ -475,7 +509,7 @@
     };
     sourcesFolder.add(samplerSettings, "play").name("Odtwórz Sampler");
 
-    // Alternatywne syntezatory – rozszerzona lista z PulseOscillator i FatOscillator
+    // Alternatywne syntezatory – rozszerzona lista
     const altSynthFolder = sourcesFolder.addFolder("Alternatywne Syntezatory");
     altSynthFolder.add(altSynthOptions, "type", [
       "MembraneSynth",

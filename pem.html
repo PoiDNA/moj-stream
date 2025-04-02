@@ -68,14 +68,14 @@
       console.log("Audio Context uruchomiony");
     });
 
-    // Utworzenie finalnego miksu – do niego kierowane będą oba sygnały
+    // Utworzenie finalnego miksu – wszystkie źródła będą do niego kierowane
     const finalMix = new Tone.Gain(1);
-    // Utwórz analizator wyświetlający waveform
+    // Utworzenie analizatora wyświetlającego waveform
     const analyser = new Tone.Analyser("waveform", 1024);
     // Łańcuch: finalMix -> analyser -> wyjście
     finalMix.chain(analyser, Tone.Destination);
 
-    // --- Syntezator i jego efekty ---
+    // --- Główna ścieżka dźwiękowa (syntezator i efekty) ---
     const synth = new Tone.Synth({
       oscillator: {
         type: "sine",
@@ -127,7 +127,7 @@
     const volume = new Tone.Volume(-12);
     const panner = new Tone.Panner(0);
 
-    // Łańcuch efektów syntezatora: wysyłamy do finalMix
+    // Łańcuch efektów syntezatora: synth -> filter -> delay -> reverb -> chorus -> distortion -> volume -> panner -> finalMix
     synth.chain(filter, delay, reverb, chorus, distortion, volume, panner, finalMix);
 
     // --- Szumy oraz dźwięki binauralne ---
@@ -138,7 +138,7 @@
       positionY: 0,
       positionZ: -1
     });
-    // Łańcuch szumu: kierowany do finalMix
+    // Łańcuch szumu: noise -> noiseVolume -> binauralPanner -> finalMix
     noise.chain(noiseVolume, binauralPanner, finalMix);
 
     // Przycisk do przełączania szumu
@@ -155,9 +155,33 @@
       }
     });
 
+    // --- Nowe źródła dźwięku ---
+
+    // Tone.Player – odtwarzacz audio
+    const player = new Tone.Player({
+      url: "https://tonejs.github.io/audio/berklee/groove.mp3",
+      autostart: false
+    }).connect(finalMix);
+
+    // Tone.Sampler – sampler instrumentu (przykładowe próbki)
+    const sampler = new Tone.Sampler({
+      urls: {
+        "C4": "C4.mp3",
+        "D#4": "Ds4.mp3",
+        "F#4": "Fs4.mp3"
+      },
+      baseUrl: "https://tonejs.github.io/audio/salamander/"
+    }).connect(finalMix);
+
+    // Alternatywne syntezatory – wybór spośród kilku typów
+    let altSynth = null;  // przechowuje aktualnie wybrany alternatywny syntezator
+
+    // Tone.UserMedia – przechwytywanie dźwięku z mikrofonu
+    let mic, micActive = false;
+
     // --- Panel kontrolny dat.GUI ---
     const gui = new dat.GUI({ width: 400 });
-    // Przenieś panel do lewej kolumny
+    // Przeniesienie panelu do lewej kolumny
     document.getElementById("leftContainer").appendChild(gui.domElement);
 
     // 1. Oscylator
@@ -190,7 +214,7 @@
     });
     oscFolder.open();
 
-    // 2. Obwiednia (Envelope)
+    // 2. Obwiednia
     const envFolder = gui.addFolder("Obwiednia");
     const envSettings = {
       attack: 0.1,
@@ -252,7 +276,6 @@
 
     // 4. Efekty
     const effectsFolder = gui.addFolder("Efekty");
-    // Delay
     const delayFolder = effectsFolder.addFolder("Delay");
     const delaySettings = {
       delayTime: 0.25,
@@ -270,7 +293,6 @@
     });
     delayFolder.open();
 
-    // Reverb
     const reverbFolder = effectsFolder.addFolder("Reverb");
     const reverbSettings = {
       decay: 2,
@@ -289,7 +311,6 @@
     });
     reverbFolder.open();
 
-    // Chorus/Flanger/Phaser
     const chorusFolder = effectsFolder.addFolder("Chorus/Flanger/Phaser");
     const chorusSettings = {
       frequency: 1.5,
@@ -315,7 +336,6 @@
     });
     chorusFolder.open();
 
-    // Distortion
     const distortionFolder = effectsFolder.addFolder("Distortion");
     const distortionSettings = {
       distortion: 0.4,
@@ -401,38 +421,90 @@
     });
     timeFolder.open();
 
-    // --- GUI dla szumów i dźwięków binauralnych ---
-    const noiseFolder = gui.addFolder("Szumy");
-    const noiseSettings = {
-      type: "white",
-      volume: -12
-    };
-    noiseFolder.add(noiseSettings, "type", ["white", "pink", "brown"]).onChange(val => {
-      noise.type = val;
-    });
-    noiseFolder.add(noiseSettings, "volume", -60, 0).onChange(val => {
-      noiseVolume.volume.value = val;
-    });
-    noiseFolder.open();
+    // --- Nowa sekcja: Źródła Dźwięku ---
+    const sourcesFolder = gui.addFolder("Źródła Dźwięku");
 
-    const binauralFolder = gui.addFolder("Dźwięki Binauralne");
-    const binauralSettings = {
-      positionX: 0,
-      positionY: 0,
-      positionZ: -1
+    // Tone.Player – odtwarzacz audio
+    const playerSettings = {
+      play: function(){
+        // Uruchomienie odtwarzania – player uruchamia się od początku
+        player.start();
+      }
     };
-    binauralFolder.add(binauralSettings, "positionX", -10, 10).onChange(val => {
-      binauralPanner.positionX = val;
-    });
-    binauralFolder.add(binauralSettings, "positionY", -10, 10).onChange(val => {
-      binauralPanner.positionY = val;
-    });
-    binauralFolder.add(binauralSettings, "positionZ", -10, 10).onChange(val => {
-      binauralPanner.positionZ = val;
-    });
-    binauralFolder.open();
+    sourcesFolder.add(playerSettings, "play").name("Odtwórz Player");
 
-    // Przycisk do wyzwolenia dźwięku – trigger pojedynczej nuty "C4"
+    // Tone.Sampler – sampler instrumentu
+    const samplerSettings = {
+      play: function(){
+        sampler.triggerAttackRelease("C4", "8n");
+      }
+    };
+    sourcesFolder.add(samplerSettings, "play").name("Odtwórz Sampler");
+
+    // Alternatywne syntezatory – wybór spośród kilku typów
+    let altSynth = null;
+    const altSynthOptions = {
+      type: "MembraneSynth",
+      play: function(){
+        if (altSynth) {
+          altSynth.triggerAttackRelease("C2", "8n");
+        }
+      }
+    };
+    const altSynthFolder = sourcesFolder.addFolder("Alternatywne Syntezatory");
+    altSynthFolder.add(altSynthOptions, "type", ["MembraneSynth", "MetalSynth", "PluckSynth", "AMSynth", "FMSynth", "MonoSynth"]).onChange(val => {
+      // Jeśli istnieje poprzedni syntezator, usuń go
+      if (altSynth) {
+        altSynth.dispose();
+        altSynth = null;
+      }
+      // Utwórz nowy syntezator na podstawie wybranego typu
+      switch(val) {
+        case "MembraneSynth":
+          altSynth = new Tone.MembraneSynth().connect(finalMix);
+          break;
+        case "MetalSynth":
+          altSynth = new Tone.MetalSynth().connect(finalMix);
+          break;
+        case "PluckSynth":
+          altSynth = new Tone.PluckSynth().connect(finalMix);
+          break;
+        case "AMSynth":
+          altSynth = new Tone.AMSynth().connect(finalMix);
+          break;
+        case "FMSynth":
+          altSynth = new Tone.FMSynth().connect(finalMix);
+          break;
+        case "MonoSynth":
+          altSynth = new Tone.MonoSynth().connect(finalMix);
+          break;
+      }
+    });
+    altSynthFolder.add(altSynthOptions, "play").name("Zagraj Alternatywny");
+
+    // Tone.UserMedia – przechwytywanie dźwięku z mikrofonu
+    const userMediaOptions = {
+      toggleMic: async function(){
+        if (!micActive) {
+          mic = new Tone.UserMedia();
+          try {
+            await mic.open();
+            mic.connect(finalMix);
+            micActive = true;
+            console.log("Mikrofon uruchomiony");
+          } catch(e) {
+            console.error("Nie udało się otworzyć mikrofonu:", e);
+          }
+        } else {
+          mic.close();
+          micActive = false;
+          console.log("Mikrofon wyłączony");
+        }
+      }
+    };
+    sourcesFolder.add(userMediaOptions, "toggleMic").name("Uruchom/Wyłącz Mikrofona");
+
+    // --- Wyzwolenie dźwięku głównego syntezatora ---
     document.getElementById("triggerNote").addEventListener("click", function(){
       synth.triggerAttackRelease("C4", "8n", Tone.now(), 0.7);
     });

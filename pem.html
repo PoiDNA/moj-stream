@@ -34,7 +34,6 @@
       width: 100%;
       box-sizing: border-box;
     }
-    /* Każdy panel kontrolny ma 50% szerokości */
     .panelContainer {
       width: 50%;
       padding: 10px;
@@ -96,17 +95,17 @@
   </div>
   
   <script>
-    // Uruchomienie AudioContext
+    // Uruchomienie AudioContext po kliknięciu przycisku
     document.getElementById("startButton").addEventListener("click", async function(){
       await Tone.start();
       console.log("Audio Context uruchomiony");
     });
 
-    // Finalny miks – ustawiony w trybie stereo
+    // Utwórz finalny miks (Stereo) – wszystkie źródła kierowane do finalMix
     const finalMix = new Tone.Gain(1);
     finalMix.channelCount = 2;
     finalMix.channelCountMode = "explicit";
-    // Analizator – wizualizacja fali
+    // Utwórz analizator wyświetlający waveform
     const analyser = new Tone.Analyser("waveform", 1024);
     finalMix.chain(analyser, Tone.Destination);
 
@@ -145,25 +144,27 @@
     // ================================
     // Inne źródła dźwięku
     // ================================
-    // Zaawansowana edycja szumu – Noise1 dla synth1
+    // Zaawansowana edycja szumu – Noise1 (dla synth1)
     const noise1 = new Tone.Noise("white");
     const noiseVolume1 = new Tone.Volume(-12);
     noise1.chain(noiseVolume1, finalMix);
-    // Noise2 dla synth2
+    // Noise2 (dla synth2)
     const noise2 = new Tone.Noise("white");
     const noiseVolume2 = new Tone.Volume(-12);
     noise2.chain(noiseVolume2, finalMix);
-
-    // Tone.Player
-    const player = new Tone.Player({
+    
+    // Tone.Player – odtwarzacz audio (używany jako external audio)
+    const externalPlayer = new Tone.Player({
       url: "https://tonejs.github.io/audio/berklee/groove.mp3",
       autostart: false
     }).connect(finalMix);
-    // Tone.Sampler
+    
+    // Tone.Sampler – sampler instrumentu
     const sampler = new Tone.Sampler({
       urls: { "C4": "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3" },
       baseUrl: "https://tonejs.github.io/audio/salamander/"
     }).connect(finalMix);
+    
     // Alternatywne syntezatory – rozszerzona lista (m.in. PulseOscillator, FatOscillator)
     let altSynth = null;
     const altSynthOptions = {
@@ -174,6 +175,7 @@
         }
       }
     };
+    
     // Tone.UserMedia – mikrofon
     let mic, micActive = false;
     const userMediaOptions = {
@@ -232,22 +234,33 @@
     });
 
     // ================================
+    // Nowa sekcja: External Audio – wprowadzanie zewnętrznego dźwięku
+    // (Przetwarzanie zewnętrznej próbki przy użyciu parametrów podobnych do oscylatora)
+    // ================================
+    const externalAudioOptions = {
+      playbackRate: 1,
+      play: function(){
+        externalPlayer.start();
+      }
+    };
+
+    // ================================
     // Panel kontrolny dla synth1 (gui1)
     // ================================
     const gui1 = new dat.GUI({ width: 1000 });
     document.getElementById("controlPanelContainer").appendChild(gui1.domElement);
+
     // Folder Oscylator (Synth1)
     const oscFolder1 = gui1.addFolder("Oscylator (Synth1)");
     const oscSettings1 = { type: "sine", detune: 0, phase: 0, partials: 0 };
-    oscFolder1.add(oscSettings1, "type", ["sine", "square", "triangle", "sawtooth"]).onChange(val => {
-      synth.oscillator.type = val;
-    });
+    oscFolder1.add(oscSettings1, "type", ["sine", "square", "triangle", "sawtooth"]).onChange(val => { synth.oscillator.type = val; });
     oscFolder1.add(oscSettings1, "detune", -1200, 1200).onChange(val => { synth.oscillator.detune = val; });
     oscFolder1.add(oscSettings1, "phase", 0, 360).onChange(val => { synth.oscillator.phase = val; });
     oscFolder1.add(oscSettings1, "partials", 0, 10, 1).onChange(val => {
       synth.oscillator.partials = (val == 0) ? [] : Array.from({length: val}, (_, i) => i + 1);
     });
     oscFolder1.open();
+
     // Folder Obwiednia (Synth1)
     const envFolder1 = gui1.addFolder("Obwiednia (Synth1)");
     const envSettings1 = { attack: 0.1, decay: 0.2, sustain: 0.5, release: 1, attackCurve: "linear", decayCurve: "linear", releaseCurve: "linear" };
@@ -259,6 +272,7 @@
     envFolder1.add(envSettings1, "decayCurve", ["linear", "exponential"]).onChange(val => { synth.envelope.decayCurve = val; });
     envFolder1.add(envSettings1, "releaseCurve", ["linear", "exponential"]).onChange(val => { synth.envelope.releaseCurve = val; });
     envFolder1.open();
+
     // Folder Filtr (Synth1)
     const filterFolder1 = gui1.addFolder("Filtr (Synth1)");
     const filterSettings1 = { type: "lowpass", frequency: 1000, Q: 1, gain: 0, rolloff: -12 };
@@ -268,6 +282,7 @@
     filterFolder1.add(filterSettings1, "gain", -40, 40).onChange(val => { filter.gain = val; });
     filterFolder1.add(filterSettings1, "rolloff", [-12, -24]).onChange(val => { filter.rolloff = val; });
     filterFolder1.open();
+
     // Folder zaawansowanej edycji szumu dla synth1
     const noise1Settings = { type: "white", volume: -12, active: false };
     const noiseFolder1 = gui1.addFolder("Szum zaawansowany (Noise 1)");
@@ -276,11 +291,21 @@
     noiseFolder1.add(noise1Settings, "active").name("Włącz Szum").onChange(val => { if(val) { noise1.start(); } else { noise1.stop(); } });
     noiseFolder1.open();
 
+    // Dodaj folder External Audio – umożliwia kontrolę parametrów zewnętrznej próbki
+    const externalAudioFolder = gui1.addFolder("External Audio");
+    const externalAudioSettings = { playbackRate: 1, play: function(){ externalPlayer.start(); } };
+    externalAudioFolder.add(externalAudioSettings, "play").name("Odtwórz External Audio");
+    externalAudioFolder.add(externalAudioSettings, "playbackRate", 0.5, 2).onChange(val => {
+      externalPlayer.playbackRate.value = val;
+    });
+    externalAudioFolder.open();
+
     // ================================
     // Panel kontrolny dla synth2 (gui2)
     // ================================
     const gui2 = new dat.GUI({ width: 1000 });
     document.getElementById("controlPanelContainer2").appendChild(gui2.domElement);
+
     // Folder Oscylator (Synth2)
     const oscFolder2 = gui2.addFolder("Oscylator (Synth2)");
     const oscSettings2 = { type: "sine", detune: 0, phase: 0, partials: 0 };
@@ -291,6 +316,7 @@
       synth2.oscillator.partials = (val == 0) ? [] : Array.from({length: val}, (_, i) => i + 1);
     });
     oscFolder2.open();
+
     // Folder Obwiednia (Synth2)
     const envFolder2 = gui2.addFolder("Obwiednia (Synth2)");
     const envSettings2 = { attack: 0.1, decay: 0.2, sustain: 0.5, release: 1, attackCurve: "linear", decayCurve: "linear", releaseCurve: "linear" };
@@ -302,16 +328,17 @@
     envFolder2.add(envSettings2, "decayCurve", ["linear", "exponential"]).onChange(val => { synth2.envelope.decayCurve = val; });
     envFolder2.add(envSettings2, "releaseCurve", ["linear", "exponential"]).onChange(val => { synth2.envelope.releaseCurve = val; });
     envFolder2.open();
+
     // Folder Filtr (Synth2)
     const filterFolder2 = gui2.addFolder("Filtr (Synth2)");
     const filterSettings2 = { type: "lowpass", frequency: 1000, Q: 1, gain: 0, rolloff: -12 };
-    // Dla synth2 filtr tworzony jest osobny obiekt filter2 (wcześniej utworzony)
     filterFolder2.add(filterSettings2, "type", ["lowpass", "highpass", "bandpass", "notch"]).onChange(val => { filter2.type = val; });
     filterFolder2.add(filterSettings2, "frequency", 20, 20000).onChange(val => { filter2.frequency.value = val; });
     filterFolder2.add(filterSettings2, "Q", 0.1, 20).onChange(val => { filter2.Q.value = val; });
     filterFolder2.add(filterSettings2, "gain", -40, 40).onChange(val => { filter2.gain = val; });
     filterFolder2.add(filterSettings2, "rolloff", [-12, -24]).onChange(val => { filter2.rolloff = val; });
     filterFolder2.open();
+
     // Folder zaawansowanej edycji szumu dla synth2
     const noise2Settings = { type: "white", volume: -12, active: false };
     const noiseFolder2 = gui2.addFolder("Szum zaawansowany (Noise 2)");

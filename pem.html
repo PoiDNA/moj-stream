@@ -175,9 +175,94 @@
 
     // Alternatywne syntezatory – wybór spośród kilku typów
     let altSynth = null;  // przechowuje aktualnie wybrany alternatywny syntezator
+    const altSynthOptions = {
+      type: "MembraneSynth",
+      play: function(){
+        if (altSynth) {
+          altSynth.triggerAttackRelease("C2", "8n");
+        }
+      }
+    };
+    const altSynthFolder = sourcesFolder.addFolder("Alternatywne Syntezatory");
+    altSynthFolder.add(altSynthOptions, "type", [
+      "MembraneSynth", 
+      "MetalSynth", 
+      "PluckSynth", 
+      "AMSynth", 
+      "FMSynth", 
+      "MonoSynth",
+      "PulseOscillator",
+      "FatOscillator"
+    ]).onChange(val => {
+      // Jeśli istnieje poprzedni syntezator, usuń go
+      if (altSynth) {
+        altSynth.dispose();
+        altSynth = null;
+      }
+      // Utwórz nowy obiekt w zależności od wybranego typu
+      switch(val) {
+        case "MembraneSynth":
+          altSynth = new Tone.MembraneSynth().connect(finalMix);
+          break;
+        case "MetalSynth":
+          altSynth = new Tone.MetalSynth().connect(finalMix);
+          break;
+        case "PluckSynth":
+          altSynth = new Tone.PluckSynth().connect(finalMix);
+          break;
+        case "AMSynth":
+          altSynth = new Tone.AMSynth().connect(finalMix);
+          break;
+        case "FMSynth":
+          altSynth = new Tone.FMSynth().connect(finalMix);
+          break;
+        case "MonoSynth":
+          altSynth = new Tone.MonoSynth().connect(finalMix);
+          break;
+        case "PulseOscillator":
+          altSynth = new Tone.PulseOscillator({
+             frequency: 220,
+             width: 0.4,
+             detune: 0
+          }).connect(finalMix);
+          altSynth.start();
+          break;
+        case "FatOscillator":
+          altSynth = new Tone.FatOscillator({
+             frequency: 220,
+             detune: 0,
+             type: "sawtooth",
+             spread: 20,
+             count: 3
+          }).connect(finalMix);
+          altSynth.start();
+          break;
+      }
+    });
+    altSynthFolder.add(altSynthOptions, "play").name("Zagraj Alternatywny");
 
     // Tone.UserMedia – przechwytywanie dźwięku z mikrofonu
     let mic, micActive = false;
+    const userMediaOptions = {
+      toggleMic: async function(){
+        if (!micActive) {
+          mic = new Tone.UserMedia();
+          try {
+            await mic.open();
+            mic.connect(finalMix);
+            micActive = true;
+            console.log("Mikrofon uruchomiony");
+          } catch(e) {
+            console.error("Nie udało się otworzyć mikrofonu:", e);
+          }
+        } else {
+          mic.close();
+          micActive = false;
+          console.log("Mikrofon wyłączony");
+        }
+      }
+    };
+    sourcesFolder.add(userMediaOptions, "toggleMic").name("Uruchom/Wyłącz Mikrofona");
 
     // --- Panel kontrolny dat.GUI ---
     const gui = new dat.GUI({ width: 400 });
@@ -442,23 +527,36 @@
     sourcesFolder.add(samplerSettings, "play").name("Odtwórz Sampler");
 
     // Alternatywne syntezatory – wybór spośród kilku typów
+    // W rozszerzonej liście dodano PulseOscillator i FatOscillator
     let altSynth = null;
     const altSynthOptions = {
       type: "MembraneSynth",
       play: function(){
         if (altSynth) {
-          altSynth.triggerAttackRelease("C2", "8n");
+          // Dla syntezatorów posiadających metodę triggerAttackRelease
+          if (altSynth.triggerAttackRelease) {
+            altSynth.triggerAttackRelease("C2", "8n");
+          }
         }
       }
     };
     const altSynthFolder = sourcesFolder.addFolder("Alternatywne Syntezatory");
-    altSynthFolder.add(altSynthOptions, "type", ["MembraneSynth", "MetalSynth", "PluckSynth", "AMSynth", "FMSynth", "MonoSynth"]).onChange(val => {
+    altSynthFolder.add(altSynthOptions, "type", [
+      "MembraneSynth", 
+      "MetalSynth", 
+      "PluckSynth", 
+      "AMSynth", 
+      "FMSynth", 
+      "MonoSynth",
+      "PulseOscillator",
+      "FatOscillator"
+    ]).onChange(val => {
       // Jeśli istnieje poprzedni syntezator, usuń go
       if (altSynth) {
         altSynth.dispose();
         altSynth = null;
       }
-      // Utwórz nowy syntezator na podstawie wybranego typu
+      // Utwórz nowy obiekt w zależności od wybranego typu
       switch(val) {
         case "MembraneSynth":
           altSynth = new Tone.MembraneSynth().connect(finalMix);
@@ -478,11 +576,30 @@
         case "MonoSynth":
           altSynth = new Tone.MonoSynth().connect(finalMix);
           break;
+        case "PulseOscillator":
+          altSynth = new Tone.PulseOscillator({
+             frequency: 220,
+             width: 0.4,
+             detune: 0
+          }).connect(finalMix);
+          altSynth.start();
+          break;
+        case "FatOscillator":
+          altSynth = new Tone.FatOscillator({
+             frequency: 220,
+             detune: 0,
+             type: "sawtooth",
+             spread: 20,
+             count: 3
+          }).connect(finalMix);
+          altSynth.start();
+          break;
       }
     });
     altSynthFolder.add(altSynthOptions, "play").name("Zagraj Alternatywny");
 
     // Tone.UserMedia – przechwytywanie dźwięku z mikrofonu
+    let mic, micActive = false;
     const userMediaOptions = {
       toggleMic: async function(){
         if (!micActive) {

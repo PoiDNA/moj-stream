@@ -1,377 +1,166 @@
-<!DOCTYPE html>
-<html lang="pl">
+<!-- 
+  KOD HTML do wklejenia w pole "HTML iFrame code" w Wix Studio.
+  ID tego iFrame'a w Wix to #htmlWave.
+  Zawiera Paper.js z gradientem, rysowaniem linii,
+  obsługą wysyłania wiadomości do rodzica (Wix) przy ruchu i kliknięciu
+  oraz przycisk "RESTART" czyszczący rysunki.
+-->
+
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Symulator A1</title>
-  <!-- Tone.js z CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-  <!-- dat.GUI z CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
+    /* Ustawiamy wypełnienie całej przestrzeni iFrame */
+    html, body, #myCanvas {
       margin: 0;
       padding: 0;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-    /* Górny pasek przycisków */
-    #topContainer {
       width: 100%;
-      padding: 10px;
-      text-align: center;
-      background: #f0f0f0;
-    }
-    #topContainer button {
-      font-size: 1.5em;
-      padding: 10px 20px;
-      margin: 10px;
-    }
-    /* Wrapper dla paneli kontrolnych ustawionych obok siebie */
-    #panelWrapper {
-      display: flex;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .panelContainer {
-      width: 50%;
-      padding: 10px;
-      background: #e8e8e8;
-      box-sizing: border-box;
-    }
-    /* Dolny pasek: tytuł i wykres analizatora */
-    #bottomContainer {
-      width: 100%;
-      padding: 20px;
-      background: #ddd;
-      text-align: center;
-      box-sizing: border-box;
-    }
-    #bottomContainer h1 {
-      font-size: 2.5em;
-      margin: 0 0 20px 0;
-    }
-    #analyserCanvas {
-      background: #222;
-      width: 100%;
-      max-width: 800px;
-      height: 300px;
+      height: 100%;
+      overflow: hidden;
       display: block;
-      margin: 0 auto;
     }
-    /* Powiększenie czcionki w panelu dat.GUI */
-    .dg.main {
-      font-size: 150%;
+    /* Przycisk RESTART w prawym górnym rogu */
+    #btnRestart {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 9999;
     }
   </style>
+  
+  <!-- Ładujemy bibliotekę Paper.js -->
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.15/paper-full.min.js"></script>
 </head>
 <body>
-  <!-- Górny pasek przycisków -->
-  <div id="topContainer">
-    <button id="startButton">Uruchom Audio</button>
-    <button id="triggerNote">Zagraj Osc1</button>
-    <button id="triggerNote2">Zagraj Osc2</button>
-    <button id="binauralButton">Uruchom Binaural Beats</button>
-    <button id="toggleNoise">Włącz/Wyłącz Szum</button>
-  </div>
-  
-  <!-- Wrapper dla paneli kontrolnych ustawionych obok siebie -->
-  <div id="panelWrapper">
-    <!-- Panel kontrolny dla synth1 -->
-    <div id="controlPanelContainer" class="panelContainer">
-      <!-- Panel dat.GUI dla synth1 zostanie dołączony tutaj -->
-    </div>
-    <!-- Panel kontrolny dla synth2 -->
-    <div id="controlPanelContainer2" class="panelContainer">
-      <!-- Panel dat.GUI dla synth2 zostanie dołączony tutaj -->
-    </div>
-  </div>
-  
-  <!-- Dolny pasek: tytuł i wykres analizatora -->
-  <div id="bottomContainer">
-    <h1>Symulator A1</h1>
-    <canvas id="analyserCanvas" width="800" height="300"></canvas>
-  </div>
-  
-  <script>
-    // Uruchomienie AudioContext po kliknięciu przycisku
-    document.getElementById("startButton").addEventListener("click", async function(){
-      await Tone.start();
-      console.log("Audio Context uruchomiony");
-    });
+  <!-- Przycisk restartu - kliknięcie wywoła funkcję restartCanvas() -->
+  <button id="btnRestart" onclick="restartCanvas()">RESTART</button>
 
-    // Utwórz finalny miks (Stereo) – wszystkie źródła kierowane do finalMix
-    const finalMix = new Tone.Gain(1);
-    finalMix.channelCount = 2;
-    finalMix.channelCountMode = "explicit";
-    // Utwórz analizator wyświetlający waveform
-    const analyser = new Tone.Analyser("waveform", 1024);
-    finalMix.chain(analyser, Tone.Destination);
+  <!-- Canvas Paper.js, który automatycznie dostosowuje rozmiar do iFrame -->
+  <canvas id="myCanvas" resize></canvas>
 
-    // ================================
-    // Pierwszy oscylator (synth1) i jego efekty
-    // ================================
-    const synth = new Tone.Synth({
-      oscillator: { type: "sine", detune: 0, phase: 0, partials: [] },
-      envelope: { attack: 0.1, decay: 0.2, sustain: 0.5, release: 1, attackCurve: "linear", decayCurve: "linear", releaseCurve: "linear" }
-    });
-    const filter = new Tone.Filter({ type: "lowpass", frequency: 1000, Q: 1, rolloff: -12 });
-    const delay = new Tone.FeedbackDelay({ delayTime: 0.25, feedback: 0.3, wet: 0.5 });
-    const reverb = new Tone.Reverb({ decay: 2, preDelay: 0.01, wet: 0.5 });
-    const chorus = new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, feedback: 0.2, wet: 0.5 }).start();
-    const distortion = new Tone.Distortion({ distortion: 0.4, oversample: "4x", wet: 0.5 });
-    const volume = new Tone.Volume(-12);
-    const panner = new Tone.Panner(0);
-    // Łańcuch: synth -> filter -> delay -> reverb -> chorus -> distortion -> volume -> panner -> finalMix
-    synth.chain(filter, delay, reverb, chorus, distortion, volume, panner, finalMix);
+  <!-- Kod PaperScript (zbliżony do JavaScriptu, ale uruchamiany przez Paper.js) -->
+  <script type="text/paperscript" canvas="myCanvas">
+    // -------------------------
+    // Zmienne globalne:
+    var path;         // do rysowania linii
+    var textItem;     // tekst pomocniczy
+    var background;   // obiekt tła (gradient)
+    var lastY = null; // do ustalania, czy mysz porusza się w górę czy w dół
 
-    // ================================
-    // Drugi oscylator (synth2) i jego efekty – niezależny
-    // ================================
-    const synth2 = new Tone.Synth({
-      oscillator: { type: "sine", detune: 0, phase: 0, partials: [] },
-      envelope: { attack: 0.1, decay: 0.2, sustain: 0.5, release: 1, attackCurve: "linear", decayCurve: "linear", releaseCurve: "linear" }
-    });
-    const filter2 = new Tone.Filter({ type: "lowpass", frequency: 1000, Q: 1, rolloff: -12 });
-    const delay2 = new Tone.FeedbackDelay({ delayTime: 0.25, feedback: 0.3, wet: 0.5 });
-    const reverb2 = new Tone.Reverb({ decay: 2, preDelay: 0.01, wet: 0.5 });
-    const chorus2 = new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, feedback: 0.2, wet: 0.5 }).start();
-    const distortion2 = new Tone.Distortion({ distortion: 0.4, oversample: "4x", wet: 0.5 });
-    const volume2 = new Tone.Volume(-12);
-    const panner2 = new Tone.Panner(0);
-    synth2.chain(filter2, delay2, reverb2, chorus2, distortion2, volume2, panner2, finalMix);
+    // Definicja gradientu (dwa kolory, przejście liniowe)
+    var grad = new Gradient(['#FFCCCC', '#CCCCFF'], true);
+    var fromPoint = new Point(0, 0);
+    var toPoint = new Point(view.bounds.width, view.bounds.height);
+    var gradColor = new Color(grad, fromPoint, toPoint);
 
-    // ================================
-    // Inne źródła dźwięku
-    // ================================
-    // Zaawansowana edycja szumu – Noise1 (dla synth1)
-    const noise1 = new Tone.Noise("white");
-    const noiseVolume1 = new Tone.Volume(-12);
-    noise1.chain(noiseVolume1, finalMix);
-    // Noise2 (dla synth2)
-    const noise2 = new Tone.Noise("white");
-    const noiseVolume2 = new Tone.Volume(-12);
-    noise2.chain(noiseVolume2, finalMix);
-    
-    // Tone.Player – odtwarzacz audio jako External Audio
-    const externalPlayer = new Tone.Player({
-      url: "https://tonejs.github.io/audio/berklee/groove.mp3",
-      autostart: false
-    }).connect(finalMix);
-    
-    // Tone.Sampler – sampler instrumentu
-    const sampler = new Tone.Sampler({
-      urls: { "C4": "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3" },
-      baseUrl: "https://tonejs.github.io/audio/salamander/"
-    }).connect(finalMix);
-    
-    // Alternatywne syntezatory – rozszerzona lista (m.in. PulseOscillator, FatOscillator)
-    let altSynth = null;
-    const altSynthOptions = {
-      type: "MembraneSynth",
-      play: function(){
-        if (altSynth && altSynth.triggerAttackRelease) {
-          altSynth.triggerAttackRelease("C2", "8n");
-        }
-      }
-    };
-    
-    // Tone.UserMedia – mikrofon
-    let mic, micActive = false;
-    const userMediaOptions = {
-      toggleMic: async function(){
-        if (!micActive) {
-          mic = new Tone.UserMedia();
-          try {
-            await mic.open();
-            mic.connect(finalMix);
-            micActive = true;
-            console.log("Mikrofon uruchomiony");
-          } catch(e) {
-            console.error("Nie udało się otworzyć mikrofonu:", e);
-          }
-        } else {
-          mic.close();
-          micActive = false;
-          console.log("Mikrofon wyłączony");
-        }
-      }
-    };
+    // -------------------------
+    // Funkcja inicjalizująca tło i tekst:
+    function initializeCanvas() {
+      // Tworzymy prostokąt na cały widok i wypełniamy gradientem
+      background = new Path.Rectangle(view.bounds);
+      background.fillColor = gradColor;
 
-    // Binaural Beats
-    let binauralActive = false;
-    let leftOsc, rightOsc, leftPanner, rightPanner;
-    document.getElementById("binauralButton").addEventListener("click", function(){
-      if (!binauralActive) {
-        const baseFreq = 440;
-        const delta = 5;
-        leftOsc = new Tone.Oscillator(baseFreq, "sine");
-        rightOsc = new Tone.Oscillator(baseFreq + delta, "sine");
-        leftPanner = new Tone.Panner(-1);
-        rightPanner = new Tone.Panner(1);
-        leftOsc.connect(leftPanner);
-        rightOsc.connect(rightPanner);
-        leftPanner.connect(finalMix);
-        rightPanner.connect(finalMix);
-        leftOsc.start();
-        rightOsc.start();
-        binauralActive = true;
-        console.log("Binaural beats uruchomione: lewy " + baseFreq + " Hz, prawy " + (baseFreq + delta) + " Hz");
-      } else {
-        leftOsc.stop();
-        rightOsc.stop();
-        binauralActive = false;
-        console.log("Binaural beats zatrzymane");
-      }
-    });
-
-    // Przycisk do wyzwalania synth1 i synth2
-    document.getElementById("triggerNote").addEventListener("click", function(){
-      synth.triggerAttackRelease("C4", "8n");
-    });
-    document.getElementById("triggerNote2").addEventListener("click", function(){
-      synth2.triggerAttackRelease("C4", "8n");
-    });
-
-    // ================================
-    // Panel kontrolny dla synth1 (gui1)
-    // ================================
-    const gui1 = new dat.GUI({ width: 500 });
-    document.getElementById("controlPanelContainer").appendChild(gui1.domElement);
-    
-    // Folder Oscylator (Synth1)
-    const oscFolder1 = gui1.addFolder("Oscylator (Synth1)");
-    const oscSettings1 = { type: "sine", detune: 0, phase: 0, partials: 0 };
-    oscFolder1.add(oscSettings1, "type", ["sine", "square", "triangle", "sawtooth"]).onChange(val => { synth.oscillator.type = val; });
-    oscFolder1.add(oscSettings1, "detune", -1200, 1200).onChange(val => { synth.oscillator.detune = val; });
-    oscFolder1.add(oscSettings1, "phase", 0, 360).onChange(val => { synth.oscillator.phase = val; });
-    oscFolder1.add(oscSettings1, "partials", 0, 10, 1).onChange(val => {
-      synth.oscillator.partials = (val == 0) ? [] : Array.from({length: val}, (_, i) => i + 1);
-    });
-    oscFolder1.open();
-    
-    // Folder Obwiednia (Synth1)
-    const envFolder1 = gui1.addFolder("Obwiednia (Synth1)");
-    const envSettings1 = { attack: 0.1, decay: 0.2, sustain: 0.5, release: 1, attackCurve: "linear", decayCurve: "linear", releaseCurve: "linear" };
-    envFolder1.add(envSettings1, "attack", 0, 2).onChange(val => { synth.envelope.attack = val; });
-    envFolder1.add(envSettings1, "decay", 0, 2).onChange(val => { synth.envelope.decay = val; });
-    envFolder1.add(envSettings1, "sustain", 0, 1).onChange(val => { synth.envelope.sustain = val; });
-    envFolder1.add(envSettings1, "release", 0, 5).onChange(val => { synth.envelope.release = val; });
-    envFolder1.add(envSettings1, "attackCurve", ["linear", "exponential"]).onChange(val => { synth.envelope.attackCurve = val; });
-    envFolder1.add(envSettings1, "decayCurve", ["linear", "exponential"]).onChange(val => { synth.envelope.decayCurve = val; });
-    envFolder1.add(envSettings1, "releaseCurve", ["linear", "exponential"]).onChange(val => { synth.envelope.releaseCurve = val; });
-    envFolder1.open();
-    
-    // Folder Filtr (Synth1)
-    const filterFolder1 = gui1.addFolder("Filtr (Synth1)");
-    const filterSettings1 = { type: "lowpass", frequency: 1000, Q: 1, gain: 0, rolloff: -12 };
-    filterFolder1.add(filterSettings1, "type", ["lowpass", "highpass", "bandpass", "notch"]).onChange(val => { filter.type = val; });
-    filterFolder1.add(filterSettings1, "frequency", 20, 20000).onChange(val => { filter.frequency.value = val; });
-    filterFolder1.add(filterSettings1, "Q", 0.1, 20).onChange(val => { filter.Q.value = val; });
-    filterFolder1.add(filterSettings1, "gain", -40, 40).onChange(val => { filter.gain = val; });
-    filterFolder1.add(filterSettings1, "rolloff", [-12, -24]).onChange(val => { filter.rolloff = val; });
-    filterFolder1.open();
-    
-    // Folder zaawansowanej edycji szumu dla synth1
-    const noise1Settings = { type: "white", volume: -12, active: false };
-    const noiseFolder1 = gui1.addFolder("Szum zaawansowany (Noise 1)");
-    noiseFolder1.add(noise1Settings, "type", ["white", "pink", "brown"]).onChange(val => { noise1.type = val; });
-    noiseFolder1.add(noise1Settings, "volume", -60, 0).onChange(val => { noiseVolume1.volume.value = val; });
-    noiseFolder1.add(noise1Settings, "active").name("Włącz Szum").onChange(val => { if(val) { noise1.start(); } else { noise1.stop(); } });
-    noiseFolder1.open();
-    
-    // Dodaj folder External Audio – możliwość kontrolowania parametrów zewnętrznego dźwięku
-    const externalAudioFolder = gui1.addFolder("External Audio");
-    const externalAudioSettings = { playbackRate: 1, play: function(){ externalPlayer.start(); } };
-    externalAudioFolder.add(externalAudioSettings, "play").name("Odtwórz External Audio");
-    externalAudioFolder.add(externalAudioSettings, "playbackRate", 0.5, 2).onChange(val => {
-      externalPlayer.playbackRate.value = val;
-    });
-    externalAudioFolder.open();
-    
-    // ================================
-    // Panel kontrolny dla synth2 (gui2)
-    // ================================
-    const gui2 = new dat.GUI({ width: 400 });
-    document.getElementById("controlPanelContainer2").appendChild(gui2.domElement);
-    
-    // Folder Oscylator (Synth2)
-    const oscFolder2 = gui2.addFolder("Oscylator (Synth2)");
-    const oscSettings2 = { type: "sine", detune: 0, phase: 0, partials: 0 };
-    oscFolder2.add(oscSettings2, "type", ["sine", "square", "triangle", "sawtooth"]).onChange(val => { synth2.oscillator.type = val; });
-    oscFolder2.add(oscSettings2, "detune", -1200, 1200).onChange(val => { synth2.oscillator.detune = val; });
-    oscFolder2.add(oscSettings2, "phase", 0, 360).onChange(val => { synth2.oscillator.phase = val; });
-    oscFolder2.add(oscSettings2, "partials", 0, 10, 1).onChange(val => {
-      synth2.oscillator.partials = (val == 0) ? [] : Array.from({length: val}, (_, i) => i + 1);
-    });
-    oscFolder2.open();
-    
-    // Folder Obwiednia (Synth2)
-    const envFolder2 = gui2.addFolder("Obwiednia (Synth2)");
-    const envSettings2 = { attack: 0.1, decay: 0.2, sustain: 0.5, release: 1, attackCurve: "linear", decayCurve: "linear", releaseCurve: "linear" };
-    envFolder2.add(envSettings2, "attack", 0, 2).onChange(val => { synth2.envelope.attack = val; });
-    envFolder2.add(envSettings2, "decay", 0, 2).onChange(val => { synth2.envelope.decay = val; });
-    envFolder2.add(envSettings2, "sustain", 0, 1).onChange(val => { synth2.envelope.sustain = val; });
-    envFolder2.add(envSettings2, "release", 0, 5).onChange(val => { synth2.envelope.release = val; });
-    envFolder2.add(envSettings2, "attackCurve", ["linear", "exponential"]).onChange(val => { synth2.envelope.attackCurve = val; });
-    envFolder2.add(envSettings2, "decayCurve", ["linear", "exponential"]).onChange(val => { synth2.envelope.decayCurve = val; });
-    envFolder2.add(envSettings2, "releaseCurve", ["linear", "exponential"]).onChange(val => { synth2.envelope.releaseCurve = val; });
-    envFolder2.open();
-    
-    // Folder Filtr (Synth2)
-    const filterFolder2 = gui2.addFolder("Filtr (Synth2)");
-    const filterSettings2 = { type: "lowpass", frequency: 1000, Q: 1, gain: 0, rolloff: -12 };
-    filterFolder2.add(filterSettings2, "type", ["lowpass", "highpass", "bandpass", "notch"]).onChange(val => { filter2.type = val; });
-    filterFolder2.add(filterSettings2, "frequency", 20, 20000).onChange(val => { filter2.frequency.value = val; });
-    filterFolder2.add(filterSettings2, "Q", 0.1, 20).onChange(val => { filter2.Q.value = val; });
-    filterFolder2.add(filterSettings2, "gain", -40, 40).onChange(val => { filter2.gain = val; });
-    filterFolder2.add(filterSettings2, "rolloff", [-12, -24]).onChange(val => { filter2.rolloff = val; });
-    filterFolder2.open();
-    
-    // Folder zaawansowanej edycji szumu dla synth2
-    const noise2Settings = { type: "white", volume: -12, active: false };
-    const noiseFolder2 = gui2.addFolder("Szum zaawansowany (Noise 2)");
-    noiseFolder2.add(noise2Settings, "type", ["white", "pink", "brown"]).onChange(val => { noise2.type = val; });
-    noiseFolder2.add(noise2Settings, "volume", -60, 0).onChange(val => { noiseVolume2.volume.value = val; });
-    noiseFolder2.add(noise2Settings, "active").name("Włącz Szum").onChange(val => { if(val) { noise2.start(); } else { noise2.stop(); } });
-    noiseFolder2.open();
-
-    // ================================
-    // LFO – przykład połączenia z częstotliwością filtra synth1
-    // ================================
-    const lfo = new Tone.LFO({ frequency: 0.5, min: 400, max: 1600, phase: 0, type: "sine" }).start();
-    lfo.connect(filter.frequency);
-
-    // ================================
-    // Animacja analizatora – rysowanie waveform na canvas
-    // ================================
-    const canvas = document.getElementById("analyserCanvas");
-    const canvasCtx = canvas.getContext("2d");
-    function draw() {
-      requestAnimationFrame(draw);
-      const dataArray = analyser.getValue();
-      canvasCtx.fillStyle = "#222";
-      canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
-      canvasCtx.lineWidth = 2;
-      canvasCtx.strokeStyle = "#0f0";
-      canvasCtx.beginPath();
-      const sliceWidth = canvas.width / dataArray.length;
-      let x = 0;
-      for (let i = 0; i < dataArray.length; i++) {
-        const v = (dataArray[i] + 1) / 2;
-        const y = v * canvas.height;
-        if (i === 0) {
-          canvasCtx.moveTo(x, y);
-        } else {
-          canvasCtx.lineTo(x, y);
-        }
-        x += sliceWidth;
-      }
-      canvasCtx.lineTo(canvas.width, canvas.height / 2);
-      canvasCtx.stroke();
+      // Tworzymy element tekstowy w lewym górnym rogu
+      textItem = new PointText({
+        content: 'Click and drag to draw a line.',
+        point: new Point(20, 30),
+        fillColor: 'black'
+      });
     }
-    draw();
+
+    // Wywołujemy inicjalizację przy starcie
+    initializeCanvas();
+
+    // -------------------------
+    // Funkcja czyszcząca rysunki (restart) i przywracająca elementy domyślne:
+    function restartCanvas() {
+      // Usuwamy wszystkie warstwy / ścieżki
+      project.clear();
+      // Ponownie tworzymy gradient i tekst
+      initializeCanvas();
+      // Resetujemy wskaźnik ostatniej pozycji myszy
+      lastY = null;
+    }
+
+    // -------------------------
+    // Obsługa zmiany rozmiaru widoku (np. przy zmianie rozmiaru iFrame):
+    function onResize(event) {
+      // Jeśli był już stary obiekt tła, usuwamy go
+      if (background) {
+        background.remove();
+      }
+      // Tworzymy nowe tło (prostokąt) na aktualny rozmiar
+      background = new Path.Rectangle(view.bounds);
+      background.fillColor = gradColor;
+      background.sendToBack();
+
+      // Ustawiamy ponownie pozycję tekstu, jeśli istnieje
+      if (textItem) {
+        textItem.position = new Point(20, 30);
+      }
+    }
+
+    // -------------------------
+    // ZDARZENIA PAPER.JS związane z rysowaniem linii:
+    // (Kod oryginalny + drobne modyfikacje)
+    
+    // Gdy użytkownik naciska przycisk myszy:
+    function onMouseDown(event) {
+      // Wysyłamy komunikat do rodzica (Wix) o "kliknięciu"
+      window.parent.postMessage({ type: "click" }, "*");
+
+      // Jeśli mieliśmy wcześniej path, przestajemy go zaznaczać:
+      if (path) {
+        path.selected = false;
+      }
+
+      // Tworzymy nową ścieżkę (linię)
+      path = new Path({
+        segments: [event.point],
+        strokeColor: 'black',
+        // Select the path, so we can see its segment points:
+        fullySelected: true
+      });
+    }
+
+    // Gdy użytkownik przeciąga myszą (trzyma wciśnięty przycisk):
+    function onMouseDrag(event) {
+      // Dodajemy kolejne punkty do ścieżki
+      path.add(event.point);
+      // Informacja w tekście o liczbie segmentów
+      textItem.content = 'Segment count: ' + path.segments.length;
+    }
+
+    // Gdy użytkownik puszcza przycisk myszy:
+    function onMouseUp(event) {
+      var segmentCount = path.segments.length;
+
+      // Upraszczamy ścieżkę (paper.js)
+      path.simplify(10);
+
+      // Zaznaczamy ścieżkę, by pokazać jej segmenty
+      path.fullySelected = true;
+
+      var newSegmentCount = path.segments.length;
+      var difference = segmentCount - newSegmentCount;
+      var percentage = 100 - Math.round(newSegmentCount / segmentCount * 100);
+      textItem.content = difference + ' of the ' + segmentCount + ' segments were removed. Saving ' + percentage + '%';
+    }
+
+    // -------------------------
+    // ZDARZENIE PAPER.JS przy poruszeniu myszą (bez klikania):
+    function onMouseMove(event) {
+      // Sprawdzamy ruch w górę / w dół na podstawie współrzędnej Y
+      if (lastY !== null) {
+        if (event.point.y < lastY) {
+          // Ruch myszy do góry
+          window.parent.postMessage({ type: "move", direction: "up" }, "*");
+        } else if (event.point.y > lastY) {
+          // Ruch myszy w dół
+          window.parent.postMessage({ type: "move", direction: "down" }, "*");
+        }
+      }
+      lastY = event.point.y;
+    }
   </script>
 </body>
 </html>

@@ -11,7 +11,7 @@
       width: 100%;
       height: 100%;
     }
-    /* Kontener wypełnia całą szerokość ekranu i utrzymuje proporcje 1:1 */
+    /* Kontener bez marginesów, wypełniający całą szerokość i wysokość, utrzymuje proporcje 1:1 */
     #container {
       position: relative;
       width: 100%;
@@ -76,15 +76,12 @@
       const offsetX = canvas.width / (gridCols + 1);
       const offsetY = canvas.height / (gridRows + 1);
       
-      // Jeśli urządzenie to smartfon lub tablet (np. canvas.width < 768), dodaj dodatkowy odstęp między sekcjami
-      let extraSpacing = 0;
-      if (canvas.width < 768) {
-        extraSpacing = 35;
-      }
+      // Dodajemy stały odstęp między sekcjami równy 50px
+      const extraSpacing = 50;
       
       // Dla każdego wiersza (sekcji)
       for (let row = 0; row < gridRows; row++) {
-        // Dodajemy dodatkowy odstęp dla wierszy poza pierwszym
+        // Obliczamy y dla danego wiersza z dodatkowym odstępem
         let y = offsetY * (row + 1) + extraSpacing * row;
         
         // Pobieramy tekst sekcji z pierwszego koła w danym wierszu
@@ -104,8 +101,9 @@
           ctx.arc(x, y, circleRadius, 0, 2 * Math.PI);
           ctx.stroke();
           
-          // Liczby pierwsze pod kołem – format: liczba ujemna, spacja, kropka, spacja, liczba dodatnia
-          let primesText = circlesData[index].primeNegative + " . " + circlesData[index].primePositive;
+          // Pod kołem – wyświetlamy liczby pierwsze w formacie: 
+          // liczba ujemna + "." + liczba dodatnia (bez spacji)
+          let primesText = circlesData[index].primeNegative + "." + circlesData[index].primePositive;
           ctx.fillText(primesText, x, y + circleRadius + 20);
         }
       }
@@ -119,12 +117,12 @@
       link.click();
     }
 
-    // Fallback – jeśli po 2 sekundach brak danych, używamy przykładowych wartości
+    // Fallback – jeśli po 2 sekundach nie otrzymamy danych, używamy przykładowych wartości
     setTimeout(() => {
       if (!circlesData || circlesData.length === 0) {
         console.warn("Brak danych - fallback");
         circlesData = [];
-        // Ustawiamy przykładowe dane dla sekcji H, D, C
+        // Przykładowe dane: sekcje H, D, C
         for (let i = 0; i < 3; i++) {
           circlesData.push({ text: "H", primePositive: 2, primeNegative: -3 });
         }

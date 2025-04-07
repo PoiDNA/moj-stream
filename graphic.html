@@ -2,30 +2,28 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Graphic Vita (Responsive)</title>
+  <title>Graphic Vita (Responsive Full Width)</title>
   <style>
-    /* Cała strona: zerowe marginesy */
     html, body {
-      margin: 0; 
+      margin: 0;
       padding: 0;
       background-color: black;
-      height: 100%;
       width: 100%;
+      height: 100%;
     }
-    /* Kontener w proporcjach 1:1 (kwadrat). 
-       Możesz ustawić max-width, żeby nie urósł za duży */
+    /* Kontener wypełnia całą szerokość ekranu */
     #container {
       position: relative;
       width: 100%;
-      max-width: 800px;  /* przykładowo, maksymalna szerokość 800px */
-      margin: 0 auto;    /* wyśrodkuj */
-      aspect-ratio: 1/1; /* kluczowy zapis, by mieć kwadrat */
+      /* Usunięto max-width, aby zawsze wykorzystać 100% szerokości */
+      margin: 0;
+      aspect-ratio: 1/1;  /* Utrzymuje kontener jako kwadrat */
       background-color: black;
     }
-    /* Canvas wypełnia #container w 100% */
+    /* Canvas wypełnia cały kontener */
     #vitaCanvas {
       position: absolute;
-      top: 0; 
+      top: 0;
       left: 0;
       width: 100%;
       height: 100%;
@@ -40,69 +38,66 @@
   <script>
     let circlesData = null;
 
-    // Odbiór wiadomości postMessage z Wix
-    window.addEventListener("message", (event) => {
+    // Odbiór danych z postMessage (np. z Wix)
+    window.addEventListener("message", function(event) {
       if (event.data.action === "download") {
         downloadCanvas();
-      } 
-      else if (event.data.circles) {
+      } else if (event.data.circles) {
         circlesData = event.data.circles;
         drawGraphic();
       }
     }, false);
 
-    // Rysowanie grafiki
     function drawGraphic() {
       const canvas = document.getElementById("vitaCanvas");
       const ctx = canvas.getContext("2d");
-
-      // 1) Ustal aktualny rozmiar w px (z uwzględnieniem stylu CSS)
+      
+      // Ustal aktualny rozmiar canvas na podstawie kontenera
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width;
       canvas.height = rect.height;
-
-      // 2) Tło i styl rysowania
+      
+      // Wyczyść canvas i ustaw czarne tło
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Ustawienia stylu rysowania (biały tekst i linie)
       ctx.fillStyle = "white";
       ctx.strokeStyle = "white";
       ctx.textAlign = "center";
       ctx.font = "16px Arial";
-
-      // 3) Jeśli brak danych, nic nie rysujemy
+      
       if (!circlesData || circlesData.length === 0) {
-        console.warn("[graphic.html] Brak circlesData!");
+        console.warn("Brak danych do rysowania!");
         return;
       }
-
-      // 4) Obliczamy pozycje w układzie 3x3
+      
+      // Oblicz pozycje w układzie 3x3
       const gridRows = 3, gridCols = 3;
-      const circleRadius = canvas.width / 12; 
-        // np. 1/12 szerokości na promień (możesz dostosować do efektu)
+      const circleRadius = canvas.width / 12; // Promień proporcjonalny do szerokości
       const offsetX = canvas.width / (gridCols + 1);
       const offsetY = canvas.height / (gridRows + 1);
-
+      
       for (let i = 0; i < circlesData.length; i++) {
         let row = Math.floor(i / gridCols);
         let col = i % gridCols;
         let x = offsetX * (col + 1);
         let y = offsetY * (row + 1);
-
-        // Okrąg
+        
+        // Rysujemy okrąg
         ctx.beginPath();
         ctx.arc(x, y, circleRadius, 0, 2 * Math.PI);
         ctx.stroke();
-
-        // Tekst nad
+        
+        // Tekst nad okręgiem
         ctx.fillText(circlesData[i].text, x, y - circleRadius - 20);
-
-        // Tekst pod
+        
+        // Liczby pierwsze pod okręgiem
         let primesText = circlesData[i].primePositive + " " + circlesData[i].primeNegative;
         ctx.fillText(primesText, x, y + circleRadius + 20);
       }
     }
 
-    // Pobieranie canvas jako PNG
     function downloadCanvas() {
       const canvas = document.getElementById("vitaCanvas");
       const link = document.createElement("a");
@@ -111,10 +106,10 @@
       link.click();
     }
 
-    // Fallback po 2s
+    // Fallback – jeśli po 2 sekundach nie otrzymamy danych, używamy przykładowych wartości
     setTimeout(() => {
       if (!circlesData || circlesData.length === 0) {
-        console.warn("[graphic.html] Brak danych - fallback");
+        console.warn("Brak danych - fallback");
         circlesData = [];
         for (let i = 0; i < 9; i++) {
           circlesData.push({
@@ -126,6 +121,13 @@
         drawGraphic();
       }
     }, 2000);
+
+    // Przerysuj grafikę przy zmianie rozmiaru okna
+    window.addEventListener('resize', function() {
+      if (circlesData) {
+        drawGraphic();
+      }
+    });
   </script>
 </body>
 </html>

@@ -24,15 +24,16 @@
 
     // Nasłuchujemy komunikatów przesyłanych przez postMessage
     window.addEventListener("message", function(event) {
-      console.log("[graphic.html] Otrzymano postMessage:", event.data); // DEBUG
+      console.log("[graphic.html] Otrzymano postMessage:", event.data);
+      console.log("[graphic.html] event.data (pełne):", event.data);
 
       if (event.data.action === "download") {
-        console.log("[graphic.html] Otrzymano polecenie 'download'"); // DEBUG
+        console.log("[graphic.html] Otrzymano polecenie 'download'");
         downloadCanvas();
       }
       else if (event.data.circles) {
         circlesData = event.data.circles;
-        console.log("[graphic.html] Ustawiam circlesData i rysuję grafikę:", circlesData); // DEBUG
+        console.log("[graphic.html] Ustawiam circlesData i rysuję grafikę:", circlesData);
         drawGraphic();
       }
     }, false);
@@ -91,6 +92,22 @@
       link.href = canvas.toDataURL("image/png");
       link.click();
     }
+
+    // Fallback: jeśli po 2 sekundach nie otrzymamy danych, użyj przykładowych wartości
+    setTimeout(() => {
+      if (!circlesData || circlesData.length === 0) {
+        console.warn("[graphic.html] Nie otrzymano danych, używam przykładowych wartości.");
+        circlesData = [];
+        for (let i = 0; i < 9; i++) {
+          circlesData.push({
+            text: "Test",
+            primePositive: 2,
+            primeNegative: -3
+          });
+        }
+        drawGraphic();
+      }
+    }, 2000);
   </script>
 </body>
 </html>

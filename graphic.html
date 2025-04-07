@@ -37,7 +37,7 @@
   <script>
     let circlesData = null;
 
-    // Odbiór danych przesłanych przez postMessage (np. z Wix)
+    // Odbiór danych z postMessage (np. z Wix)
     window.addEventListener("message", function(event) {
       if (event.data.action === "download") {
         downloadCanvas();
@@ -76,30 +76,24 @@
       const offsetX = canvas.width / (gridCols + 1);
       const offsetY = canvas.height / (gridRows + 1);
       
-      // Pętla po sekcjach (wierszach) – 0: sekcja H, 1: D, 2: C
-      for (let row = 0; row < gridRows; row++) {
+      // Rysujemy 9 kół, podzielonych na 3 sekcje
+      for (let i = 0; i < circlesData.length; i++) {
+        let row = Math.floor(i / gridCols);
+        let col = i % gridCols;
+        let x = offsetX * (col + 1);
         let y = offsetY * (row + 1);
-        // Etykieta sekcji – używamy tekstu z pierwszego koła danej sekcji
-        let sectionText = circlesData[row * gridCols].text;
-        ctx.font = "bold 18px Arial";
-        // Rysujemy etykietę na środku szerokości, trochę wyżej niż koła
-        ctx.fillText(sectionText, canvas.width / 2, y - circleRadius - 30);
-        ctx.font = "16px Arial"; // resetujemy font
-
-        // Pętla dla kolumn w danym wierszu
-        for (let col = 0; col < gridCols; col++) {
-          let x = offsetX * (col + 1);
-          
-          // Rysujemy koło
-          ctx.beginPath();
-          ctx.arc(x, y, circleRadius, 0, 2 * Math.PI);
-          ctx.stroke();
-          
-          // Liczby pierwsze pod kołem – format: liczba ujemna, spacja, kropka, spacja, liczba dodatnia
-          let index = row * gridCols + col;
-          let primesText = circlesData[index].primeNegative + " . " + circlesData[index].primePositive;
-          ctx.fillText(primesText, x, y + circleRadius + 20);
-        }
+        
+        // Rysujemy okrąg
+        ctx.beginPath();
+        ctx.arc(x, y, circleRadius, 0, 2 * Math.PI);
+        ctx.stroke();
+        
+        // Tekst nad okręgiem – w danej sekcji, przyjmujemy, że wszystkie koła mają ten sam tekst
+        ctx.fillText(circlesData[i].text, x, y - circleRadius - 20);
+        
+        // Liczby pierwsze pod okręgiem – format: liczba ujemna, spacja, kropka, spacja, liczba dodatnia
+        let primesText = circlesData[i].primeNegative + " . " + circlesData[i].primePositive;
+        ctx.fillText(primesText, x, y + circleRadius + 20);
       }
     }
 
@@ -111,20 +105,17 @@
       link.click();
     }
 
-    // Fallback – jeśli po 2 sekundach nie otrzymamy danych, używamy przykładowych wartości
+    // Fallback – jeśli po 2 sekundach brak danych, używamy przykładowych wartości
     setTimeout(() => {
       if (!circlesData || circlesData.length === 0) {
         console.warn("Brak danych - fallback");
         circlesData = [];
-        // Fallback: pierwsza sekcja H, druga D, trzecia C
-        for (let i = 0; i < 3; i++) {
-          circlesData.push({ text: "H", primePositive: 2, primeNegative: -3 });
-        }
-        for (let i = 0; i < 3; i++) {
-          circlesData.push({ text: "D", primePositive: 2, primeNegative: -3 });
-        }
-        for (let i = 0; i < 3; i++) {
-          circlesData.push({ text: "C", primePositive: 2, primeNegative: -3 });
+        for (let i = 0; i < 9; i++) {
+          circlesData.push({
+            text: "Test",
+            primePositive: 2,
+            primeNegative: -3
+          });
         }
         drawGraphic();
       }

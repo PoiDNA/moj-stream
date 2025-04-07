@@ -92,8 +92,8 @@
         // Tekst nad okręgiem
         ctx.fillText(circlesData[i].text, x, y - circleRadius - 20);
         
-        // Liczby pierwsze pod okręgiem
-        let primesText = circlesData[i].primePositive + " " + circlesData[i].primeNegative;
+        // Liczby pierwsze pod okręgiem – najpierw liczba ujemna, potem " . " i liczba dodatnia
+        let primesText = circlesData[i].primeNegative + " . " + circlesData[i].primePositive;
         ctx.fillText(primesText, x, y + circleRadius + 20);
       }
     }

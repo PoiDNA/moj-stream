@@ -22,20 +22,19 @@
   <script>
     let circlesData = null;
 
-    // Odbiór komunikatów wysłanych przez postMessage
+    // Odbiór postMessage
     window.addEventListener("message", function(event) {
       console.log("[graphic.html] Otrzymano postMessage:", event.data);
       if (event.data.action === "download") {
-        console.log("[graphic.html] Otrzymano polecenie 'download'");
         downloadCanvas();
-      } else if (event.data.circles) {
+      }
+      else if (event.data.circles) {
         circlesData = event.data.circles;
-        console.log("[graphic.html] Ustawiam circlesData i rysuję grafikę:", circlesData);
+        console.log("[graphic.html] Ustawiam circlesData:", circlesData);
         drawGraphic();
       }
     }, false);
 
-    // Funkcja rysująca grafikę: 9 okręgów (3x3)
     function drawGraphic() {
       const canvas = document.getElementById("vitaCanvas");
       const ctx = canvas.getContext("2d");
@@ -49,7 +48,7 @@
       ctx.font = "16px Arial";
 
       if (!circlesData || circlesData.length === 0) {
-        console.warn("[graphic.html] Brak danych circlesData do rysowania!");
+        console.warn("[graphic.html] Brak danych do rysowania!");
         return;
       }
 
@@ -64,18 +63,20 @@
         let x = offsetX * (col + 1);
         let y = offsetY * (row + 1);
 
+        // Okrąg
         ctx.beginPath();
         ctx.arc(x, y, circleRadius, 0, 2 * Math.PI);
         ctx.stroke();
 
+        // Tekst nad okręgiem
         ctx.fillText(circlesData[i].text, x, y - circleRadius - 20);
 
+        // Liczby pierwsze pod okręgiem
         let primesText = circlesData[i].primePositive + " " + circlesData[i].primeNegative;
         ctx.fillText(primesText, x, y + circleRadius + 20);
       }
     }
 
-    // Funkcja pobierająca obraz canvas jako PNG
     function downloadCanvas() {
       const canvas = document.getElementById("vitaCanvas");
       const link = document.createElement("a");
@@ -84,10 +85,10 @@
       link.click();
     }
 
-    // Fallback – jeśli przez 2 sekundy nie otrzymamy danych, używamy przykładowych wartości
+    // Fallback: jeśli po 2 sekundach brak danych, rysujemy "Test"
     setTimeout(() => {
       if (!circlesData || circlesData.length === 0) {
-        console.warn("[graphic.html] Nie otrzymano danych, używam przykładowych wartości.");
+        console.warn("[graphic.html] Nie otrzymano danych, używam przykładowych wartości (fallback).");
         circlesData = [];
         for (let i = 0; i < 9; i++) {
           circlesData.push({

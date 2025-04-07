@@ -22,32 +22,27 @@
   <script>
     let circlesData = null;
 
-    // Nasłuchujemy komunikatów przesyłanych przez postMessage
+    // Odbiór komunikatów wysłanych przez postMessage
     window.addEventListener("message", function(event) {
       console.log("[graphic.html] Otrzymano postMessage:", event.data);
-      console.log("[graphic.html] event.data (pełne):", event.data);
-
       if (event.data.action === "download") {
         console.log("[graphic.html] Otrzymano polecenie 'download'");
         downloadCanvas();
-      }
-      else if (event.data.circles) {
+      } else if (event.data.circles) {
         circlesData = event.data.circles;
         console.log("[graphic.html] Ustawiam circlesData i rysuję grafikę:", circlesData);
         drawGraphic();
       }
     }, false);
 
-    // Funkcja rysująca grafikę: 9 okręgów w układzie 3x3
+    // Funkcja rysująca grafikę: 9 okręgów (3x3)
     function drawGraphic() {
       const canvas = document.getElementById("vitaCanvas");
       const ctx = canvas.getContext("2d");
 
-      // Czyścimy canvas i ustawiamy czarne tło
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Ustawiamy biały kolor dla rysowania
       ctx.fillStyle = "white";
       ctx.strokeStyle = "white";
       ctx.textAlign = "center";
@@ -58,7 +53,6 @@
         return;
       }
 
-      // Obliczamy pozycje okręgów w układzie 3x3
       const gridRows = 3, gridCols = 3;
       const circleRadius = 50;
       const offsetX = canvas.width / (gridCols + 1);
@@ -70,21 +64,18 @@
         let x = offsetX * (col + 1);
         let y = offsetY * (row + 1);
 
-        // Rysujemy okrąg
         ctx.beginPath();
         ctx.arc(x, y, circleRadius, 0, 2 * Math.PI);
         ctx.stroke();
 
-        // Nad okręgiem – wyświetlamy przetworzony tekst
         ctx.fillText(circlesData[i].text, x, y - circleRadius - 20);
 
-        // Pod okręgiem – wyświetlamy losowo dobrane liczby pierwsze (dodatnią i ujemną)
         let primesText = circlesData[i].primePositive + " " + circlesData[i].primeNegative;
         ctx.fillText(primesText, x, y + circleRadius + 20);
       }
     }
 
-    // Funkcja pobierająca zawartość canvas jako obraz PNG
+    // Funkcja pobierająca obraz canvas jako PNG
     function downloadCanvas() {
       const canvas = document.getElementById("vitaCanvas");
       const link = document.createElement("a");
@@ -93,7 +84,7 @@
       link.click();
     }
 
-    // Fallback: jeśli po 2 sekundach nie otrzymamy danych, użyj przykładowych wartości
+    // Fallback – jeśli przez 2 sekundy nie otrzymamy danych, używamy przykładowych wartości
     setTimeout(() => {
       if (!circlesData || circlesData.length === 0) {
         console.warn("[graphic.html] Nie otrzymano danych, używam przykładowych wartości.");

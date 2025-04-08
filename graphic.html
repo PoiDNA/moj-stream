@@ -11,7 +11,6 @@
       width: 100%;
       height: 100%;
     }
-    /* Kontener bez marginesów, wypełniający cały widok */
     #container {
       position: fixed;
       top: 0;
@@ -39,14 +38,13 @@
 
     // Odbiór wiadomości z postMessage
     window.addEventListener("message", function(event) {
-      // Używamy "*" jako targetOrigin przy wysyłaniu odpowiedzi, by uniknąć błędów związanych z event.origin
       if (event.data.action === "download") {
         downloadCanvas();
       } else if (event.data.action === "getCanvasData") {
         const canvas = document.getElementById("vitaCanvas");
         const dataUrl = canvas.toDataURL("image/png");
-        // Zwracamy dane – targetOrigin ustawiamy na "*"
-        event.source.postMessage({ canvasDataUrl: dataUrl }, "*");
+        // Wysyłamy dane do rodzica (Wix) – to ważne, by użyć window.parent
+        window.parent.postMessage({ canvasDataUrl: dataUrl }, "*");
       } else if (event.data.circles) {
         circlesData = event.data.circles;
         drawGraphic();
@@ -62,11 +60,10 @@
       canvas.width = rect.width;
       canvas.height = rect.height;
 
-      // Ustawienie tła
+      // Tło
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Ustawienia stylu
       ctx.fillStyle = "white";
       ctx.strokeStyle = "white";
       ctx.textAlign = "center";
@@ -77,12 +74,11 @@
       const cx = canvas.width / 2;
       const cy = canvas.height / 2;
 
-      // Ustalamy promień koła – 2x większe (zwiększone o 100% w porównaniu z wartością bazową)
+      // Promień powiększony 2x
       const circleRadius = (canvas.width / 12) * 2.0;
 
-      // Pozycjonowanie: ustawiamy koło (yCircle) tak, aby znajdowało się wyżej w canvasie;
-      // liczb pierwsze mają być rysowane 70px poniżej dolnej krawędzi koła.
-      const yCircle = cy - 130;  // Koło przesunięte lekko do góry
+      // Koło nieco wyżej
+      const yCircle = cy - 130;
       const yPrimes = yCircle + circleRadius + 70;
 
       // Rysujemy koło
@@ -90,12 +86,12 @@
       ctx.arc(cx, yCircle, circleRadius, 0, 2 * Math.PI);
       ctx.stroke();
 
-      // Rysujemy liczby pierwsze – ustawiamy czcionkę 32px
+      // Rysujemy ciąg liczb (32px)
       ctx.font = "32px Arial";
       const primesText = data.primeNegative + "." + data.primePositive;
       ctx.fillText(primesText, cx, yPrimes);
 
-      // Zbieramy opisy (dla pól H, D, C)
+      // Zbieramy opisy (H, D, C)
       const descriptions = [];
       if (data.textH && data.textH.trim()) descriptions.push(data.textH.trim());
       if (data.textD && data.textD.trim()) descriptions.push(data.textD.trim());
@@ -103,7 +99,7 @@
 
       if (descriptions.length === 0) return;
 
-      // Rysowanie opisów – zaczynamy 100px poniżej liczb
+      // Rysowanie opisów
       let y = yPrimes + 100;
       ctx.font = "bold 18px Arial";
       const maxWidth = canvas.width * 0.8;
@@ -118,7 +114,6 @@
       });
     }
 
-    // Funkcja zawijania tekstu
     function wrapText(ctx, text, maxWidth) {
       const words = text.split(" ");
       const lines = [];
@@ -146,7 +141,7 @@
       link.click();
     }
 
-    // Fallback – jeśli dane nie zostaną odebrane w ciągu 2 sekund, użyj przykładowych wartości
+    // Fallback – jeśli dane nie dotrą w ciągu 2 sekund, rysuj przykładowe wartości
     setTimeout(() => {
       if (!circlesData || circlesData.length === 0) {
         circlesData = [{

@@ -11,7 +11,7 @@
       width: 100%;
       height: 100%;
     }
-    /* Kontener wypełnia cały widok, aspect-ratio: 1/1 dla kwadratu */
+    /* Kontener wypełnia cały widok, bez marginesów; aspect-ratio: 1/1 dla kwadratu */
     #container {
       position: relative;
       width: 100%;
@@ -20,6 +20,7 @@
       aspect-ratio: 1/1;
       background-color: black;
     }
+    /* Canvas wypełnia cały kontener */
     #vitaCanvas {
       position: absolute;
       top: 0;
@@ -37,12 +38,11 @@
   <script>
     let circlesData = null;
 
-    // Odbiór danych z postMessage (Wix)
+    // Odbiór danych z postMessage (np. z Wix)
     window.addEventListener("message", function(event) {
       if (event.data.action === "download") {
         downloadCanvas();
-      }
-      else if (event.data.circles) {
+      } else if (event.data.circles) {
         circlesData = event.data.circles;
         drawGraphic();
       }
@@ -51,35 +51,34 @@
     function drawGraphic() {
       const canvas = document.getElementById("vitaCanvas");
       const ctx = canvas.getContext("2d");
-      
-      // Ustalamy rozmiary canvas
+
+      // Ustal aktualny rozmiar canvas na podstawie kontenera
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width;
       canvas.height = rect.height;
 
-      // Tło czarne
+      // Wyczyść canvas i ustaw czarne tło
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Sprawdzamy, czy mamy dane
+      // Ustawienia: biały tekst, linie, wyśrodkowanie
+      ctx.fillStyle = "white";
+      ctx.strokeStyle = "white";
+      ctx.textAlign = "center";
+
       if (!circlesData || circlesData.length === 0) {
-        console.warn("[graphic.html] Brak danych do rysowania!");
+        console.warn("Brak danych do rysowania!");
         return;
       }
 
       // Pobieramy jedyny obiekt (jedno koło)
       const data = circlesData[0];
-      
-      // Kolory i ustawienia pędzla
-      ctx.strokeStyle = "white";
-      ctx.fillStyle = "white";
-      ctx.textAlign = "center";
 
-      // Ustalamy pozycję koła w środku canvas
+      // Wyznaczamy środek canvas
       const cx = canvas.width / 2;
       const cy = canvas.height / 2;
 
-      // Koło 40% większe względem dotychczasowego ( canvas.width / 12 )
+      // Koło – 40% większe: oryginalny promień (canvas.width/12) pomnożony przez 1.4
       const circleRadius = (canvas.width / 12) * 1.4;
 
       // Rysujemy koło
@@ -87,11 +86,18 @@
       ctx.arc(cx, cy, circleRadius, 0, 2 * Math.PI);
       ctx.stroke();
 
-      // Teraz wyświetlamy teksty
-      // Odległość 100px od dołu koła do pierwszej linii
-      let yText = cy + circleRadius + 100;
+      // Pod kołem: najpierw wyświetlamy liczby pierwsze
+      const gapAfterCircle = 100; // odstęp 100px od dolnej krawędzi koła
+      let yPrime = cy + circleRadius + gapAfterCircle;
+      ctx.font = "16px Arial";
+      // Format: liczba ujemna + "." + liczba dodatnia (bez spacji)
+      const primesText = data.primeNegative + "." + data.primePositive;
+      ctx.fillText(primesText, cx, yPrime);
 
-      // Zbieramy w tablicę tylko niepuste pola
+      // Następnie, z odstępem 35px między wierszami, wyświetlamy opisy
+      let yDesc = yPrime + 35;
+      ctx.font = "bold 18px Arial";
+      // Tworzymy tablicę opisów – tylko te, które są niepuste
       let descriptions = [];
       if (data.textH && data.textH.trim() !== "") {
         descriptions.push(data.textH);
@@ -102,24 +108,10 @@
       if (data.textC && data.textC.trim() !== "") {
         descriptions.push(data.textC);
       }
-
-      // Ustawiamy większą czcionkę do opisów
-      ctx.font = "bold 18px Arial";
-
-      // Każdy opis w kolejnej linii, z odstępem 35px
-      const lineSpacing = 35;
       descriptions.forEach((desc) => {
-        ctx.fillText(desc, cx, yText);
-        yText += lineSpacing;
+        ctx.fillText(desc, cx, yDesc);
+        yDesc += 35; // odstęp 35px między kolejnymi opisami
       });
-
-      // Po (ewentualnych) opisach rysujemy linijkę z liczbami pierwszymi
-      // Dodajemy 100px od poprzedniej linii
-      yText += 100;
-      ctx.font = "16px Arial";
-      // Format: ujemna.dodatnia (bez spacji)
-      let primesText = data.primeNegative + "." + data.primePositive;
-      ctx.fillText(primesText, cx, yText);
     }
 
     function downloadCanvas() {
@@ -130,10 +122,10 @@
       link.click();
     }
 
-    // Fallback – jeśli 2 sek. brak danych, pokaż przykładowe
+    // Fallback – jeśli po 2 sekundach nie otrzymamy danych, używamy przykładowych wartości
     setTimeout(() => {
       if (!circlesData || circlesData.length === 0) {
-        console.warn("[graphic.html] Brak danych - fallback");
+        console.warn("Brak danych - fallback");
         circlesData = [{
           textH: "",
           textD: "",
@@ -145,8 +137,8 @@
       }
     }, 2000);
 
-    // Przerysowujemy obraz przy zmianie rozmiaru
-    window.addEventListener("resize", () => {
+    // Przerysowujemy grafikę przy zmianie rozmiaru okna
+    window.addEventListener('resize', function() {
       if (circlesData) {
         drawGraphic();
       }

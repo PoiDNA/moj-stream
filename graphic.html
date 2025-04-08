@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Graphic Vita (Wrap Text)</title>
+  <title>Graphic Vita (Duże Koło + Większe Liczby)</title>
   <style>
     html, body {
       margin: 0;
@@ -33,12 +33,17 @@
   <div id="container">
     <canvas id="vitaCanvas"></canvas>
   </div>
+
   <script>
     let circlesData = null;
 
     window.addEventListener("message", function(event) {
       if (event.data.action === "download") {
         downloadCanvas();
+      } else if (event.data.action === "getCanvasData") {
+        const canvas = document.getElementById("vitaCanvas");
+        const dataUrl = canvas.toDataURL("image/png");
+        event.source.postMessage({ canvasDataUrl: dataUrl }, event.origin);
       } else if (event.data.circles) {
         circlesData = event.data.circles;
         drawGraphic();
@@ -65,20 +70,20 @@
       const data = circlesData[0];
       const cx = canvas.width / 2;
       const cy = canvas.height / 2;
-      const circleRadius = (canvas.width / 12) * 1.4;
+      const circleRadius = (canvas.width / 12) * 2.0; // zwiększone o 100%
 
-      // Rysuj koło
+      // 1. Rysuj koło
       ctx.beginPath();
       ctx.arc(cx, cy, circleRadius, 0, 2 * Math.PI);
       ctx.stroke();
 
-      // Liczby pierwsze – 10px pod kołem
+      // 2. Liczby pierwsze — 10px pod kołem, font 32px (zwiększony 2x)
       const yPrimes = cy + circleRadius + 10;
-      ctx.font = "16px Arial";
+      ctx.font = "32px Arial"; // zwiększone 2x
       const primesText = data.primeNegative + "." + data.primePositive;
       ctx.fillText(primesText, cx, yPrimes);
 
-      // Zbierz opisy
+      // 3. Opisy — 100px poniżej liczb
       const descriptions = [];
       if (data.textH && data.textH.trim()) descriptions.push(data.textH.trim());
       if (data.textD && data.textD.trim()) descriptions.push(data.textD.trim());
@@ -86,12 +91,11 @@
 
       if (descriptions.length === 0) return;
 
-      // Pozycja startowa do rysowania opisów
       let y = yPrimes + 100;
       ctx.font = "bold 18px Arial";
 
-      const maxWidth = canvas.width * 0.8;  // maksymalna szerokość tekstu (80% szerokości canvas)
-      const lineHeight = 30;               // wysokość pojedynczego wiersza
+      const maxWidth = canvas.width * 0.8;
+      const lineHeight = 30;
 
       descriptions.forEach(desc => {
         const lines = wrapText(ctx, desc, maxWidth);
@@ -102,7 +106,7 @@
       });
     }
 
-    // Funkcja dzieląca tekst na linie w zależności od szerokości
+    // Funkcja zawijania tekstu
     function wrapText(ctx, text, maxWidth) {
       const words = text.split(" ");
       const lines = [];

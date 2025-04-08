@@ -11,8 +11,9 @@
       width: 100%;
       height: 100%;
     }
+    /* Kontener wypełnia cały widok, bez marginesów */
     #container {
-      position: fixed; /* zapobiega przesunięciom */
+      position: fixed;
       top: 0;
       left: 0;
       width: 100%;
@@ -53,11 +54,12 @@
       const canvas = document.getElementById("vitaCanvas");
       const ctx = canvas.getContext("2d");
 
-      // Dopasowanie do rozmiaru
+      // Dopasowanie rozmiaru canvas do kontenera
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width;
       canvas.height = rect.height;
 
+      // Czyścimy canvas i ustawiamy czarne tło
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -71,23 +73,27 @@
       const cx = canvas.width / 2;
       const cy = canvas.height / 2;
 
-      const circleRadius = (canvas.width / 12) * 2.0; // Koło 2x większe
+      // Ustalamy promień koła – 2x większe (100% większe) względem wartości bazowej (canvas.width/12)
+      const circleRadius = (canvas.width / 12) * 2.0;
 
-      // Nowe pozycjonowanie
-      const yCircle = cy - 130; // lekko wyżej niż środek
-      const yPrimes = yCircle + circleRadius + 130; // dodatkowe +70px
+      // Pozycjonowanie:
+      // Tutaj określamy y dla koła. Jeśli chcesz, aby koło było dokładnie wyśrodkowane, możesz zmodyfikować tę wartość.
+      // Obecnie yCircle jest ustawione na cy - 130 (co przesuwa koło nieco w górę)
+      const yCircle = cy - 130;
+      // Liczby pierwsze pojawią się 70px poniżej dolnej krawędzi koła
+      const yPrimes = yCircle + circleRadius + 70;
 
-      // 1. Koło
+      // 1. Rysujemy koło
       ctx.beginPath();
       ctx.arc(cx, yCircle, circleRadius, 0, 2 * Math.PI);
       ctx.stroke();
 
-      // 2. Liczby
+      // 2. Liczby pierwsze – ustawiamy czcionkę 32px i wyświetlamy je 70px poniżej dolnej krawędzi koła
       ctx.font = "32px Arial";
       const primesText = data.primeNegative + "." + data.primePositive;
       ctx.fillText(primesText, cx, yPrimes);
 
-      // 3. Opisy
+      // 3. Opisy – 100px poniżej liczb
       const descriptions = [];
       if (data.textH && data.textH.trim()) descriptions.push(data.textH.trim());
       if (data.textD && data.textD.trim()) descriptions.push(data.textD.trim());
@@ -100,6 +106,7 @@
       const maxWidth = canvas.width * 0.8;
       const lineHeight = 30;
 
+      // Dla każdego opisu wykorzystujemy funkcję wrapText i rysujemy linie
       descriptions.forEach(desc => {
         const lines = wrapText(ctx, desc, maxWidth);
         lines.forEach(line => {
@@ -109,6 +116,7 @@
       });
     }
 
+    // Funkcja zawijania tekstu (wrapText) – dzieli tekst na linie, jeżeli przekracza maxWidth
     function wrapText(ctx, text, maxWidth) {
       const words = text.split(" ");
       const lines = [];
@@ -124,7 +132,9 @@
           line = testLine;
         }
       }
-      if (line !== "") lines.push(line.trim());
+      if (line !== "") {
+        lines.push(line.trim());
+      }
       return lines;
     }
 
@@ -136,6 +146,7 @@
       link.click();
     }
 
+    // Fallback – jeżeli po 2 sekundach nie zostaną odebrane dane, używamy przykładowych wartości
     setTimeout(() => {
       if (!circlesData || circlesData.length === 0) {
         circlesData = [{

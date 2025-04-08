@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Graphic Vita (Duże Koło + Większe Liczby + Większy Odstęp)</title>
+  <title>Graphic Vita (Final Proportions)</title>
   <style>
     html, body {
       margin: 0;
@@ -12,17 +12,16 @@
       height: 100%;
     }
     #container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      aspect-ratio: 1/1;
-      background-color: black;
-    }
-    #vitaCanvas {
-      position: absolute;
+      position: fixed; /* zapobiega przesunięciom */
       top: 0;
       left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: black;
+      margin: 0;
+      padding: 0;
+    }
+    #vitaCanvas {
       width: 100%;
       height: 100%;
       display: block;
@@ -54,6 +53,7 @@
       const canvas = document.getElementById("vitaCanvas");
       const ctx = canvas.getContext("2d");
 
+      // Dopasowanie do rozmiaru
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width;
       canvas.height = rect.height;
@@ -70,20 +70,24 @@
       const data = circlesData[0];
       const cx = canvas.width / 2;
       const cy = canvas.height / 2;
-      const circleRadius = (canvas.width / 12) * 2.0; // koło 100% większe
 
-      // 1. Rysuj koło
+      const circleRadius = (canvas.width / 12) * 2.0; // Koło 2x większe
+
+      // Nowe pozycjonowanie
+      const yCircle = cy - 130; // lekko wyżej niż środek
+      const yPrimes = yCircle + circleRadius + 130; // dodatkowe +70px
+
+      // 1. Koło
       ctx.beginPath();
-      ctx.arc(cx, cy, circleRadius, 0, 2 * Math.PI);
+      ctx.arc(cx, yCircle, circleRadius, 0, 2 * Math.PI);
       ctx.stroke();
 
-      // 2. Liczby pierwsze — 60px pod kołem (10px + 50px)
-      const yPrimes = cy + circleRadius + 60;
-      ctx.font = "32px Arial"; // większe liczby
+      // 2. Liczby
+      ctx.font = "32px Arial";
       const primesText = data.primeNegative + "." + data.primePositive;
       ctx.fillText(primesText, cx, yPrimes);
 
-      // 3. Opisy — 100px poniżej liczb
+      // 3. Opisy
       const descriptions = [];
       if (data.textH && data.textH.trim()) descriptions.push(data.textH.trim());
       if (data.textD && data.textD.trim()) descriptions.push(data.textD.trim());
@@ -93,7 +97,6 @@
 
       let y = yPrimes + 100;
       ctx.font = "bold 18px Arial";
-
       const maxWidth = canvas.width * 0.8;
       const lineHeight = 30;
 
@@ -106,7 +109,6 @@
       });
     }
 
-    // Funkcja zawijania tekstu
     function wrapText(ctx, text, maxWidth) {
       const words = text.split(" ");
       const lines = [];
@@ -122,9 +124,7 @@
           line = testLine;
         }
       }
-      if (line !== "") {
-        lines.push(line.trim());
-      }
+      if (line !== "") lines.push(line.trim());
       return lines;
     }
 

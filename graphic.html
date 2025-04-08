@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Graphic Vita (Duże Koło + Większe Liczby)</title>
+  <title>Graphic Vita (Duże Koło + Większe Liczby + Większy Odstęp)</title>
   <style>
     html, body {
       margin: 0;
@@ -70,16 +70,16 @@
       const data = circlesData[0];
       const cx = canvas.width / 2;
       const cy = canvas.height / 2;
-      const circleRadius = (canvas.width / 12) * 2.0; // zwiększone o 100%
+      const circleRadius = (canvas.width / 12) * 2.0; // koło 100% większe
 
       // 1. Rysuj koło
       ctx.beginPath();
       ctx.arc(cx, cy, circleRadius, 0, 2 * Math.PI);
       ctx.stroke();
 
-      // 2. Liczby pierwsze — 10px pod kołem, font 32px (zwiększony 2x)
-      const yPrimes = cy + circleRadius + 10;
-      ctx.font = "32px Arial"; // zwiększone 2x
+      // 2. Liczby pierwsze — 60px pod kołem (10px + 50px)
+      const yPrimes = cy + circleRadius + 60;
+      ctx.font = "32px Arial"; // większe liczby
       const primesText = data.primeNegative + "." + data.primePositive;
       ctx.fillText(primesText, cx, yPrimes);
 

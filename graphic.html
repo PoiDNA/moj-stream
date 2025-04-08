@@ -11,10 +11,11 @@
       width: 100%;
       height: 100%;
     }
-    /* Kontener bez marginesów, wypełniający całą szerokość i wysokość, utrzymuje proporcje 1:1 */
+    /* Kontener wypełnia całą szerokość i wysokość, bez marginesów; utrzymuje proporcje 1:1 */
     #container {
       position: relative;
       width: 100%;
+      height: 100%;
       margin: 0;
       aspect-ratio: 1/1;
       background-color: black;
@@ -37,7 +38,7 @@
   <script>
     let circlesData = null;
 
-    // Odbiór danych przesłanych przez postMessage (np. z Wix)
+    // Odbiór danych z postMessage
     window.addEventListener("message", function(event) {
       if (event.data.action === "download") {
         downloadCanvas();
@@ -51,62 +52,66 @@
       const canvas = document.getElementById("vitaCanvas");
       const ctx = canvas.getContext("2d");
       
-      // Ustal aktualny rozmiar canvas na podstawie kontenera
+      // Ustalamy rozmiar canvas według kontenera
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width;
       canvas.height = rect.height;
       
-      // Wyczyść canvas i ustaw czarne tło
+      // Czyścimy canvas i ustawiamy czarne tło
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Ustawienia stylu – biały tekst i linie
+      // Ustawienia stylu tekstu i linii
       ctx.fillStyle = "white";
       ctx.strokeStyle = "white";
       ctx.textAlign = "center";
-      ctx.font = "16px Arial";
       
       if (!circlesData || circlesData.length === 0) {
         console.warn("Brak danych do rysowania!");
         return;
       }
       
-      const gridRows = 3, gridCols = 3;
-      const circleRadius = canvas.width / 12; // Promień proporcjonalny do szerokości
-      const offsetX = canvas.width / (gridCols + 1);
-      const offsetY = canvas.height / (gridRows + 1);
+      // Pobieramy dane z jednego obiektu (jedno koło)
+      const data = circlesData[0];
       
-      // Dodajemy stały odstęp między sekcjami równy 50px
-      const extraSpacing = 50;
+      // Wyznaczamy środek i promień koła
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const circleRadius = canvas.width / 12;
       
-      // Dla każdego wiersza (sekcji)
-      for (let row = 0; row < gridRows; row++) {
-        // Obliczamy y dla danego wiersza z dodatkowym odstępem
-        let y = offsetY * (row + 1) + extraSpacing * row;
-        
-        // Pobieramy tekst sekcji z pierwszego koła w danym wierszu
-        let sectionText = circlesData[row * gridCols].text;
-        ctx.font = "bold 18px Arial";
-        // Rysujemy etykietę sekcji wyśrodkowaną, powyżej koł
-        ctx.fillText(sectionText, canvas.width / 2, y - circleRadius - 30);
-        ctx.font = "16px Arial"; // Resetujemy font
-        
-        // Rysujemy koła w danym wierszu
-        for (let col = 0; col < gridCols; col++) {
-          let index = row * gridCols + col;
-          let x = offsetX * (col + 1);
-          
-          // Rysujemy okrąg
-          ctx.beginPath();
-          ctx.arc(x, y, circleRadius, 0, 2 * Math.PI);
-          ctx.stroke();
-          
-          // Pod kołem – wyświetlamy liczby pierwsze w formacie: 
-          // liczba ujemna + "." + liczba dodatnia (bez spacji)
-          let primesText = circlesData[index].primeNegative + "." + circlesData[index].primePositive;
-          ctx.fillText(primesText, x, y + circleRadius + 20);
-        }
+      // Rysujemy koło
+      ctx.beginPath();
+      ctx.arc(cx, cy, circleRadius, 0, 2 * Math.PI);
+      ctx.stroke();
+      
+      // Ustalamy początkową pozycję tekstu pod kołem (100px odstępu od dolnej krawędzi koła)
+      let yText = cy + circleRadius + 100;
+      
+      // Tworzymy tablicę opisów – tylko te pola, które są niepuste
+      let descriptions = [];
+      if (data.textH && data.textH.trim() !== "") {
+        descriptions.push(data.textH);
       }
+      if (data.textD && data.textD.trim() !== "") {
+        descriptions.push(data.textD);
+      }
+      if (data.textC && data.textC.trim() !== "") {
+        descriptions.push(data.textC);
+      }
+      
+      // Ustawiamy pogrubiony font do opisów
+      ctx.font = "bold 18px Arial";
+      // Rysujemy każdy opis w kolejnych wierszach, z 100px odstępem
+      descriptions.forEach(description => {
+        ctx.fillText(description, cx, yText);
+        yText += 100;
+      });
+      
+      // Po opisach, z odstępem 100px, rysujemy wiersz z liczbami pierwszymi
+      ctx.font = "16px Arial";
+      yText += 100;
+      let primesText = data.primeNegative + "." + data.primePositive;
+      ctx.fillText(primesText, cx, yText);
     }
 
     function downloadCanvas() {
@@ -121,17 +126,13 @@
     setTimeout(() => {
       if (!circlesData || circlesData.length === 0) {
         console.warn("Brak danych - fallback");
-        circlesData = [];
-        // Przykładowe dane: sekcje H, D, C
-        for (let i = 0; i < 3; i++) {
-          circlesData.push({ text: "H", primePositive: 2, primeNegative: -3 });
-        }
-        for (let i = 0; i < 3; i++) {
-          circlesData.push({ text: "D", primePositive: 2, primeNegative: -3 });
-        }
-        for (let i = 0; i < 3; i++) {
-          circlesData.push({ text: "C", primePositive: 2, primeNegative: -3 });
-        }
+        circlesData = [{
+          textH: "H",
+          textD: "D",
+          textC: "C",
+          primePositive: 2,
+          primeNegative: -3
+        }];
         drawGraphic();
       }
     }, 2000);

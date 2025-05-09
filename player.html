@@ -3,32 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Stream Player</title>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <title>Stream Embed Player</title>
   <style>
-    /* Reset */
+    /* RESET */
     html, body {
       margin: 0; 
-      padding: 0; 
+      padding: 0;
       width: 100%; 
-      height: 100%; 
+      height: 100%;
       background: #000;
     }
-    /* Kontener */
     #videoContainer {
       position: relative; 
       width: 100%; 
       height: 100%; 
       background: #000;
     }
-    video {
-      width: 100%; 
-      height: 100%; 
-      object-fit: contain; 
-      display: block; 
+    /* Jeśli chcemy wstawić <iframe> wewnętrzny: stylujemy go na 100% */
+    #bunnyFrame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
       background: #000;
     }
-    /* Overlay */
+
+    /* OVERLAY */
     #overlay {
       position: absolute;
       top: 0; left: 0; 
@@ -37,7 +37,7 @@
       z-index: 10;
       opacity: 1;
       transition: opacity 0.5s ease;
-      pointer-events: none; /* Nie klikalne poza #pulseCircle */
+      pointer-events: none;
     }
     #pulseCircle {
       position: absolute;
@@ -50,14 +50,17 @@
       z-index: 12;
       cursor: pointer;
       pointer-events: auto;
-      display: flex; align-items: center; justify-content: center;
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
     }
     @keyframes pulse {
       0%   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
       50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
     }
-    /* Pasek przycisków */
+
+    /* Pasek przycisków (STOP / FULLSCREEN) */
     #iconButtons {
       position: absolute;
       bottom: 45px;
@@ -87,23 +90,24 @@
 </head>
 <body>
   <div id="videoContainer">
-    <video id="videoPlayer" muted playsinline webkit-playsinline></video>
+    <!-- docelowy iFrame osadzający embed bunny -->
+    <iframe id="bunnyFrame"></iframe>
 
+    <!-- Overlay z pulsującym kołem -->
     <div id="overlay">
       <div id="pulseCircle">
-        <!-- Ikona -->
         <svg xmlns="http://www.w3.org/2000/svg" fill="#fff" viewBox="0 0 24 24" width="64" height="64">
-          <path d="M12 1C7.03 1 3 5.03 3 10v1c0 4.97 4.03 9 9 
-            9 1.83 0 3.55-.5 5.02-1.36l-.93-1.93C15.76 
+          <path d="M12 1C7.03 1 3 5.03 3 10v1c0 4.97 
+            4.03 9 9 9 1.83 0 3.55-.5 5.02-1.36l-.93-1.93C15.76 
             19.42 14 19.99 12 19.99c-3.87 0-7-3.13-7-7v-1
             c0-3.87 3.13-7 7-7s7 3.13 7 7v1c0 .34-.03.67-.08
-            1l1.49 3.12c.44-.97.69-2.08.69-3.12V10c0-4.97
-            -4.03-9-9-9zM11 8h2v5h-2zm0 7h2v2h-2z"/>
+            1l1.49 3.12c.44-.97.69-2.08.69-3.12V10
+            c0-4.97-4.03-9-9-9zM11 8h2v5h-2zm0 7h2v2h-2z"/>
         </svg>
       </div>
     </div>
 
-    <!-- Pasek STOP / Fullscreen -->
+    <!-- Pasek STOP / FULLSCREEN -->
     <div id="iconButtons">
       <button id="stopBtn" title="Zakończ">
         <svg viewBox="0 0 24 24">
@@ -120,50 +124,33 @@
   </div>
 
   <script>
-    // sprawdzamy, czy smartphone => chowamy fullscreen
+    // Ukryj fullscreen na smartfonach
     const isSmartphone = /Android|iPhone|iPod|IEMobile|Opera Mini|BlackBerry/i.test(navigator.userAgent);
     if (isSmartphone) {
       document.getElementById('fullscreenBtn').style.display = 'none';
     }
 
-    // Parametr ?src= (URL do pliku HLS .m3u8)
-    const urlParams = new URLSearchParams(window.location.search);
-    const streamSrc = urlParams.get('src');
-    console.log("streamSrc:", streamSrc);
-
-    const videoEl = document.getElementById('videoPlayer');
-    const overlay = document.getElementById('overlay');
-    const pulseCircle = document.getElementById('pulseCircle');
-    const stopBtn = document.getElementById('stopBtn');
-    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const iframeEl   = document.getElementById('bunnyFrame');
+    const overlay    = document.getElementById('overlay');
+    const pulseCircle= document.getElementById('pulseCircle');
+    const stopBtn    = document.getElementById('stopBtn');
+    const fsBtn      = document.getElementById('fullscreenBtn');
 
     let isLoading = false;
 
-    // Inicjuj HLS
-    if (streamSrc) {
-      initHls(streamSrc);
+    // Param ?src= (link do https://iframe.mediadelivery.net/embed/...)
+    const urlParams = new URLSearchParams(window.location.search);
+    const embedSrc = urlParams.get('src');
+    console.log("embedSrc =>", embedSrc);
+
+    // Wstawiamy do iframe
+    if (embedSrc) {
+      iframeEl.src = embedSrc;
     } else {
-      console.warn("Brak param ?src= - nie ustawiono strumienia");
+      console.warn("Brak ?src= => Nie ustawiono iframeEl.src");
     }
 
-    function initHls(hlsUrl) {
-      if (Hls.isSupported()) {
-        const hls = new Hls();
-        hls.loadSource(hlsUrl);
-        hls.attachMedia(videoEl);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          console.log("MANIFEST_PARSED => czekamy na klik overlay");
-        });
-      } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
-        // Safari
-        videoEl.src = hlsUrl;
-        videoEl.load();
-      } else {
-        console.error("Brak wsparcia HLS w tej przeglądarce");
-      }
-    }
-
-    // Klik pulsującego koła => usuń overlay, unmute, odtwórz
+    // Klik pulsującego koła => chowamy overlay, odblokowujemy "audio" (symbolicznie)
     pulseCircle.addEventListener('click', function() {
       if (isLoading) return;
       isLoading = true;
@@ -172,54 +159,47 @@
       pulseCircle.style.animation = 'none';
 
       setTimeout(() => {
-        // usuwamy overlay
         overlay.style.opacity = '0';
         setTimeout(() => { overlay.style.display = 'none'; }, 500);
 
-        // Przywróć oryginalną ikonę
-        pulseCircle.innerHTML = `<svg ...> ... </svg>`; 
+        pulseCircle.innerHTML = `<svg ...>...</svg>`; 
         pulseCircle.style.animation = '';
         isLoading = false;
 
-        // unmute i start
-        videoEl.muted = false;
-        videoEl.play().catch(err => console.error("Play error:", err));
-
+        // Ewentualnie wysłanie postMessage do iframu wewnątrz
+        // np. iframeEl.contentWindow.postMessage("unmuteAudio", "*");
       }, 3000);
     });
 
-    // STOP
+    // STOP => reset
     stopBtn.addEventListener('click', function() {
-      console.log("STOP => reset");
-      videoEl.pause();
-      videoEl.currentTime = 0;
-      videoEl.muted = true;
-      resetOverlay();
+      console.log("Stop => reset iframe");
+      // Możesz np. wyczyścić iframe lub przeładować
+      iframeEl.src = "about:blank";
+      doResetOverlay();
     });
 
-    function resetOverlay() {
+    function doResetOverlay() {
       overlay.style.display = 'block';
       overlay.style.opacity = '1';
-      pulseCircle.innerHTML = `<svg ...> ... </svg>`; 
+      pulseCircle.innerHTML = `<svg ...>...</svg>`;
       pulseCircle.style.animation = '';
     }
 
     // Fullscreen
-    fullscreenBtn.addEventListener('click', function() {
+    fsBtn.addEventListener('click', function() {
       const container = document.getElementById('videoContainer');
       if (!document.fullscreenElement) {
-        container.requestFullscreen().catch(err=>console.error("FS error:", err));
+        container.requestFullscreen().catch(err => console.error("FS error:", err));
       } else {
-        document.exitFullscreen().catch(err=>console.error("Exit FS error:", err));
+        document.exitFullscreen().catch(err => console.error("Exit FS error:", err));
       }
     });
 
-    // Wyjście ze strony => stop + reset
+    // Zatrzymanie przy wyjściu
     function stopAndReset() {
-      videoEl.pause();
-      videoEl.currentTime = 0;
-      videoEl.muted = true;
-      resetOverlay();
+      iframeEl.src = "about:blank";
+      doResetOverlay();
     }
     window.addEventListener("beforeunload", stopAndReset);
     document.addEventListener("visibilitychange", function(){

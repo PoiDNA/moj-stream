@@ -8,38 +8,37 @@
   <style>
     /* Reset */
     html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
+      margin: 0; 
+      padding: 0; 
+      width: 100%; 
+      height: 100%; 
       background: #000;
     }
-    /* Kontener wideo */
+    /* Kontener */
     #videoContainer {
-      position: relative;
-      width: 100%;
-      height: 100%;
+      position: relative; 
+      width: 100%; 
+      height: 100%; 
       background: #000;
     }
     video {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      display: block;
+      width: 100%; 
+      height: 100%; 
+      object-fit: contain; 
+      display: block; 
       background: #000;
     }
-    /* Overlay – pełne okno, początkowo widoczne */
+    /* Overlay */
     #overlay {
       position: absolute;
-      top: 0; left: 0;
+      top: 0; left: 0; 
       width: 100%; height: 100%;
       background: #000;
       z-index: 10;
       opacity: 1;
       transition: opacity 0.5s ease;
-      pointer-events: none;
+      pointer-events: none; /* Nie klikalne poza #pulseCircle */
     }
-    /* Pulsujące koło – element startowy */
     #pulseCircle {
       position: absolute;
       top: 50%; left: 50%;
@@ -58,7 +57,7 @@
       50%  { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
       100% { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
     }
-    /* Pasek przycisków – białe tło, czarne ikony */
+    /* Pasek przycisków */
     #iconButtons {
       position: absolute;
       bottom: 45px;
@@ -71,177 +70,164 @@
       background: #fff;
       border-radius: 8px;
     }
-    #iconButtons button,
-    #iconButtons button svg {
-      -webkit-appearance: none;
-      appearance: none;
-    }
     #iconButtons button {
-      background: transparent;
-      border: none;
+      background: transparent; 
+      border: none; 
       cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
     }
     #iconButtons button svg {
-      width: 28px; height: 28px;
+      width: 28px; 
+      height: 28px;
       fill: #000 !important;
     }
   </style>
 </head>
 <body>
   <div id="videoContainer">
-    <video id="videoPlayer" muted playsinline webkit-playsinline loop></video>
+    <video id="videoPlayer" muted playsinline webkit-playsinline></video>
 
-    <!-- Overlay z pulsującym kołem -->
     <div id="overlay">
       <div id="pulseCircle">
-        <!-- Ikona linii papilarnych -->
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" width="64" height="64">
-          <path d="M12 1C7.03 1 3 5.03 3 10v1c0 4.97 4.03 9 9 9 1.83 0 3.55-.5 5.02-1.36l-.93-1.93C15.76 19.42 14 19.99 12 19.99c-3.87 0-7-3.13-7-7v-1
-          c0-3.87 3.13-7 7-7s7 3.13 7 7v1c0 .34-.03.67-.08 1l1.49 3.12c.44-.97.69-2.08.69-3.12V10c0-4.97-4.03-9-9-9zM11 8h2v5h-2zm0
-          7h2v2h-2z"/>
+        <!-- Ikona -->
+        <svg xmlns="http://www.w3.org/2000/svg" fill="#fff" viewBox="0 0 24 24" width="64" height="64">
+          <path d="M12 1C7.03 1 3 5.03 3 10v1c0 4.97 4.03 9 9 
+            9 1.83 0 3.55-.5 5.02-1.36l-.93-1.93C15.76 
+            19.42 14 19.99 12 19.99c-3.87 0-7-3.13-7-7v-1
+            c0-3.87 3.13-7 7-7s7 3.13 7 7v1c0 .34-.03.67-.08
+            1l1.49 3.12c.44-.97.69-2.08.69-3.12V10c0-4.97
+            -4.03-9-9-9zM11 8h2v5h-2zm0 7h2v2h-2z"/>
         </svg>
       </div>
     </div>
 
-    <!-- Pasek przycisków STOP / FULLSCREEN -->
+    <!-- Pasek STOP / Fullscreen -->
     <div id="iconButtons">
-      <button id="stopBtn" title="Zakończ sesję">
+      <button id="stopBtn" title="Zakończ">
         <svg viewBox="0 0 24 24">
           <path fill="currentColor" d="M6 6h12v12H6z"/>
         </svg>
       </button>
       <button id="fullscreenBtn" title="Fullscreen">
         <svg viewBox="0 0 24 24">
-          <path fill="currentColor" d="M7 14h2v3h3v2H7v-5zm10-4h-2V7h-3V5h5v5zM7 7h3V5H5v5h2V7zm8 10h3v-3h2v5h-5v-2z"/>
+          <path fill="currentColor" d="M7 14h2v3h3v2H7v-5zm10-4h-2V7h-3V5h5v5z
+            M7 7h3V5H5v5h2V7zm8 10h3v-3h2v5h-5v-2z"/>
         </svg>
       </button>
     </div>
   </div>
 
   <script>
-    // Wykrywamy czy smartphone => chowamy fullscreen
+    // sprawdzamy, czy smartphone => chowamy fullscreen
     const isSmartphone = /Android|iPhone|iPod|IEMobile|Opera Mini|BlackBerry/i.test(navigator.userAgent);
     if (isSmartphone) {
-      document.getElementById("fullscreenBtn").style.display = "none";
+      document.getElementById('fullscreenBtn').style.display = 'none';
     }
 
-    const videoEl   = document.getElementById("videoPlayer");
-    const overlay   = document.getElementById("overlay");
-    const pulseCircle = document.getElementById("pulseCircle");
-    const stopBtn   = document.getElementById("stopBtn");
-    const fullscreenBtn = document.getElementById("fullscreenBtn");
+    // Parametr ?src= (URL do pliku HLS .m3u8)
+    const urlParams = new URLSearchParams(window.location.search);
+    const streamSrc = urlParams.get('src');
+    console.log("streamSrc:", streamSrc);
+
+    const videoEl = document.getElementById('videoPlayer');
+    const overlay = document.getElementById('overlay');
+    const pulseCircle = document.getElementById('pulseCircle');
+    const stopBtn = document.getElementById('stopBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
 
     let isLoading = false;
 
-    // Na potrzeby demoa: Pobieramy param "src" z URL i wstrzykujemy go do playera
-    const urlParams = new URLSearchParams(window.location.search);
-    const streamSrc = urlParams.get('src'); 
-    console.log("Chosen stream src:", streamSrc);
-
+    // Inicjuj HLS
     if (streamSrc) {
-      initPlayer(streamSrc);
+      initHls(streamSrc);
     } else {
-      console.warn("Brak parametru ?src= - Player nie ustawi strumienia");
+      console.warn("Brak param ?src= - nie ustawiono strumienia");
     }
 
-    function initPlayer(hlsUrl) {
+    function initHls(hlsUrl) {
       if (Hls.isSupported()) {
         const hls = new Hls();
         hls.loadSource(hlsUrl);
         hls.attachMedia(videoEl);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          // Nic nie auto-play'ujemy, czekamy na klik pulsującego koła
+          console.log("MANIFEST_PARSED => czekamy na klik overlay");
         });
-      } else if (videoEl.canPlayType("application/vnd.apple.mpegurl")) {
+      } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
         // Safari
         videoEl.src = hlsUrl;
         videoEl.load();
       } else {
-        console.error("Brak wsparcia HLS w tej przeglądarce.");
+        console.error("Brak wsparcia HLS w tej przeglądarce");
       }
     }
 
-    // Klik pulsującego koła => unmute, schowaj overlay
-    pulseCircle.addEventListener("click", function() {
+    // Klik pulsującego koła => usuń overlay, unmute, odtwórz
+    pulseCircle.addEventListener('click', function() {
       if (isLoading) return;
       isLoading = true;
 
-      pulseCircle.innerHTML = '<span style="color:#fff; font-size:14px;">Ładowanie...</span>';
-      pulseCircle.style.animation = "none";
+      pulseCircle.innerHTML = '<span style="color:#fff;font-size:14px;">Ładowanie...</span>';
+      pulseCircle.style.animation = 'none';
 
       setTimeout(() => {
-        videoEl.muted = false; // włącz audio
-        overlay.style.opacity = "0";
-        setTimeout(() => { overlay.style.display = "none"; }, 500);
+        // usuwamy overlay
+        overlay.style.opacity = '0';
+        setTimeout(() => { overlay.style.display = 'none'; }, 500);
 
-        // Przywróć oryginalny wygląd
-        pulseCircle.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#fff" width="64" height="64">
-          <path d="M12 1C7.03 1 3 5.03 3 10v1c0 4.97 4.03 9 9 9 1.83 0 3.55-.5 5.02-1.36l-.93-1.93C15.76 19.42
-           14 19.99 12 19.99c-3.87 0-7-3.13-7-7v-1c0-3.87 3.13-7 7-7s7 3.13
-           7 7v1c0 .34-.03.67-.08 1l1.49 3.12c.44-.97.69-2.08.69-3.12V10c0-4.97-4.03-9-9-9zM11
-           8h2v5h-2zm0 7h2v2h-2z"/>
-        </svg>`;
-        pulseCircle.style.animation = "";
+        // Przywróć oryginalną ikonę
+        pulseCircle.innerHTML = `<svg ...> ... </svg>`; 
+        pulseCircle.style.animation = '';
         isLoading = false;
 
-        // Wywołanie do rodzica (opcjonalne), np. window.parent.postMessage({action: "startStream"}, "*");
+        // unmute i start
+        videoEl.muted = false;
         videoEl.play().catch(err => console.error("Play error:", err));
+
       }, 3000);
     });
 
-    // STOP => wycisz, reset
-    stopBtn.addEventListener("click", function() {
-      console.log("Clicked STOP => muting audio, reset overlay");
-      videoEl.muted = true;
-      doResetOverlay();
-      // Notyfikacja do rodzica (opcjonalnie)
-      // window.parent.postMessage({action: "stopStream"}, "*");
-    });
-
-    function doResetOverlay() {
-      overlay.style.display = "block";
-      overlay.style.opacity = "1";
-      pulseCircle.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-       fill="#fff" width="64" height="64">
-       <path d="M12 1C7.03 1 3 5.03 3 10v1c0 4.97 4.03 9
-       9 9 1.83 0 3.55-.5 5.02-1.36l-.93-1.93C15.76 19.42
-        14 19.99 12 19.99c-3.87 0-7-3.13-7-7v-1c0-3.87
-        3.13-7 7-7s7 3.13 7 7v1c0 .34-.03.67-.08 1l1.49
-        3.12c.44-.97.69-2.08.69-3.12V10c0-4.97-4.03-9-9-9zM11
-        8h2v5h-2zm0 7h2v2h-2z"/>
-     </svg>`;
-      pulseCircle.style.animation = "";
+    // STOP
+    stopBtn.addEventListener('click', function() {
+      console.log("STOP => reset");
       videoEl.pause();
       videoEl.currentTime = 0;
+      videoEl.muted = true;
+      resetOverlay();
+    });
+
+    function resetOverlay() {
+      overlay.style.display = 'block';
+      overlay.style.opacity = '1';
+      pulseCircle.innerHTML = `<svg ...> ... </svg>`; 
+      pulseCircle.style.animation = '';
     }
 
-    // Fullscreen toggle
-    fullscreenBtn.addEventListener("click", function() {
-      const container = document.getElementById("videoContainer");
+    // Fullscreen
+    fullscreenBtn.addEventListener('click', function() {
+      const container = document.getElementById('videoContainer');
       if (!document.fullscreenElement) {
-        container.requestFullscreen().catch(err => console.error("FS error:", err));
+        container.requestFullscreen().catch(err=>console.error("FS error:", err));
       } else {
-        document.exitFullscreen().catch(err => console.error("Exit FS error:", err));
+        document.exitFullscreen().catch(err=>console.error("Exit FS error:", err));
       }
     });
 
-    // Zatrzymanie i reset przy wyjściu / schowaniu strony
-    function stopStreamAndResetUI() {
+    // Wyjście ze strony => stop + reset
+    function stopAndReset() {
       videoEl.pause();
       videoEl.currentTime = 0;
-      doResetOverlay();
       videoEl.muted = true;
-      // window.parent.postMessage({ action: "stopStream" }, "*");
+      resetOverlay();
     }
-
-    window.addEventListener("beforeunload", stopStreamAndResetUI);
-    document.addEventListener("visibilitychange", function() {
-      if (document.visibilityState === "hidden") {
-        stopStreamAndResetUI();
+    window.addEventListener("beforeunload", stopAndReset);
+    document.addEventListener("visibilitychange", function(){
+      if (document.visibilityState === 'hidden') {
+        stopAndReset();
       }
     });
-    document.addEventListener("pagehide", stopStreamAndResetUI);
+    document.addEventListener("pagehide", stopAndReset);
   </script>
 </body>
 </html>
